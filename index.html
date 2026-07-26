@@ -768,19 +768,28 @@ a{color:var(--blue);}
               <span id="connDot" style="width:9px;height:9px;border-radius:50%;background:var(--text-faint);flex:0 0 auto;"></span>
               <span id="connLabel" style="font-size:13px;font-weight:700;color:var(--text-mut);">Verificando conexión…</span>
             </div>
-            <div class="field" style="margin-bottom:12px;">
-              <label>URL del proyecto</label>
-              <input class="input" id="cfgSupaUrl" placeholder="https://xxxxx.supabase.co">
+
+            <div id="supaConfigLockedView" style="display:none;">
+              <div class="detail-row"><span>Proyecto</span><b id="supaLockedHost">—</b></div>
+              <p class="hint" style="margin:10px 0 0;">La conexión ya está configurada para esta app. No necesitas volver a hacerlo.</p>
+              <button class="btn btn-outline btn-sm" style="width:100%;margin-top:12px;" onclick="unlockSupabaseConfig()">🔒 Cambiar configuración</button>
             </div>
-            <div class="field" style="margin-bottom:12px;">
-              <label>Clave anon / public</label>
-              <input class="input" id="cfgSupaKey" placeholder="eyJhbGciOi...">
+
+            <div id="supaConfigEditable">
+              <div class="field" style="margin-bottom:12px;">
+                <label>URL del proyecto</label>
+                <input class="input" id="cfgSupaUrl" placeholder="https://xxxxx.supabase.co">
+              </div>
+              <div class="field" style="margin-bottom:12px;">
+                <label>Clave anon / public</label>
+                <input class="input" id="cfgSupaKey" placeholder="eyJhbGciOi...">
+              </div>
+              <div class="row-2">
+                <button class="btn btn-outline" onclick="testSupabaseConnection()">Probar conexión</button>
+                <button class="btn btn-primary" onclick="saveSupabaseConnection()">Guardar</button>
+              </div>
+              <p class="hint" style="margin-top:10px;">Estos datos se guardan solo en este dispositivo. Los encuentras en tu proyecto de Supabase, en Settings → API.</p>
             </div>
-            <div class="row-2">
-              <button class="btn btn-outline" onclick="testSupabaseConnection()">Probar conexión</button>
-              <button class="btn btn-primary" onclick="saveSupabaseConnection()">Guardar</button>
-            </div>
-            <p class="hint" style="margin-top:10px;">Estos datos se guardan solo en este dispositivo. Los encuentras en tu proyecto de Supabase, en Settings → API.</p>
           </div>
 
           <div class="section-title" style="margin:22px 0 10px;padding:0;">Cuenta</div>
@@ -924,6 +933,17 @@ a{color:var(--blue);}
    DATOS: DIVISIÓN POLÍTICO-ADMINISTRATIVA (INEC) — referencial
    Provincias del área de servicio de EERSSA
    ========================================================= */
+/* =========================================================
+   CONFIGURACIÓN INSTITUCIONAL POR DEFECTO
+   Completa estos dos valores con los datos reales de tu proyecto
+   de Supabase (Settings → API) antes de publicar la app. Una vez
+   completados, la app los guarda sola en cada dispositivo la primera
+   vez que se abre — el inspector nunca tiene que configurarlos a mano,
+   y la tarjeta de conexión en Ajustes queda bloqueada automáticamente.
+   ========================================================= */
+const DEFAULT_SUPABASE_URL = "https://jpflnpidqterlnqofrlg.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZmxucGlkcXRlcmxucW9mcmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMzA2NzAsImV4cCI6MjEwMDYwNjY3MH0.xXwHhn6--HDwV9IMrs1PC7Inii_hhtOaKYSiec_P_YI";
+
 const DPA = {
   "Loja": {
     "Loja": ["El Sagrario","Sucre","San Sebastián","El Valle","Punzara","Chuquiribamba","El Cisne","Gualel","Jimbilla","Malacatos","San Lucas","San Pedro de Vilcabamba","Santiago","Taquil","Vilcabamba","Yangana","Quinara","Chantaco"],
@@ -1143,6 +1163,17 @@ async function renderConfigSyncStatus(){
   urlInput.value = url || '';
   keyInput.value = key || '';
 
+  const lockedView = document.getElementById('supaConfigLockedView');
+  const editableView = document.getElementById('supaConfigEditable');
+  if(url && key && !supaUnlockedForEditing){
+    lockedView.style.display = 'block';
+    editableView.style.display = 'none';
+    document.getElementById('supaLockedHost').textContent = url.replace(/^https?:\/\//,'').replace(/\/$/,'');
+  } else {
+    lockedView.style.display = 'none';
+    editableView.style.display = 'block';
+  }
+
   const dot = document.getElementById('connDot');
   const label = document.getElementById('connLabel');
   if(!url || !key){
@@ -1160,6 +1191,11 @@ async function renderConfigSyncStatus(){
   const lbl = document.getElementById('lastSyncLabel');
   if(lbl) lbl.textContent = 'Última sync: ' + (lastSync ? new Date(lastSync).toLocaleString('es-EC') : 'nunca');
 }
+let supaUnlockedForEditing = false;
+function unlockSupabaseConfig(){
+  supaUnlockedForEditing = true;
+  renderConfigSyncStatus();
+}
 async function saveSupabaseConnection(){
   const url = document.getElementById('cfgSupaUrl').value.trim();
   const key = document.getElementById('cfgSupaKey').value.trim();
@@ -1167,6 +1203,7 @@ async function saveSupabaseConnection(){
   await cfgSet('supabaseUrl', url);
   await cfgSet('supabaseAnonKey', key);
   supabaseClient = null; // forzar recreación del cliente con los nuevos datos
+  supaUnlockedForEditing = false;
   showToast('Conexión guardada','ok');
   renderConfigSyncStatus();
 }
@@ -1224,6 +1261,13 @@ async function refreshInspectionsFromDB(){
   if(currentScreen==='perfil') renderPerfil();
 }
 
+async function ensureSupabaseDefaults(){
+  if(!DEFAULT_SUPABASE_URL || !DEFAULT_SUPABASE_ANON_KEY) return;
+  const existingUrl = await cfgGet('supabaseUrl');
+  if(existingUrl) return; // ya configurado (manualmente o en un arranque anterior)
+  await cfgSet('supabaseUrl', DEFAULT_SUPABASE_URL);
+  await cfgSet('supabaseAnonKey', DEFAULT_SUPABASE_ANON_KEY);
+}
 async function ensureSeedData(){
   const seeded = await cfgGet('seeded');
   if(seeded) return;
@@ -1274,6 +1318,7 @@ window.addEventListener('load', async ()=>{
   buildSelects();
   registerServiceWorker();
   wireConnectivityHandlers();
+  await ensureSupabaseDefaults();
   await ensureSeedData();
   await refreshInspectionsFromDB();
   const cachedSession = await cfgGet('session');
@@ -1884,7 +1929,7 @@ function renderPerfil(){
 let perfilEditing = false;
 function toggleEditPerfil(){
   perfilEditing = !perfilEditing;
-  ['perfilNombre','perfilCargo','perfilCorreo','perfilTelefono'].forEach(id=>{
+  ['perfilNombre','perfilCedula','perfilCargo','perfilCorreo','perfilTelefono'].forEach(id=>{
     document.getElementById(id).disabled = !perfilEditing;
   });
   const btn = document.getElementById('perfilEditBtn');
@@ -1894,6 +1939,7 @@ function toggleEditPerfil(){
     btn.style.marginTop='14px';
   } else {
     app.user.nombre = document.getElementById('perfilNombre').value;
+    app.user.cedula = document.getElementById('perfilCedula').value;
     app.user.cargo = document.getElementById('perfilCargo').value;
     app.user.correo = document.getElementById('perfilCorreo').value;
     app.user.telefono = document.getElementById('perfilTelefono').value;
