@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123A5E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EERSSA Inspector">
+<title>EERSSA Inspector · Prototipo</title>
+<style>
+:root{
+  --blue:#123A5E;
+  --blue-dark:#0C2C47;
+  --blue-light:#1E5486;
+  --blue-tint:#E9EEF3;
+  --white:#FFFFFF;
+  --bg:#F4F6F8;
+  --card:#FFFFFF;
+  --border:#E2E6EA;
+  --text:#1B2733;
+  --text-mut:#657586;
+  --text-faint:#93A0AC;
+  --green:#2E9E5B;   --green-tint:#E7F6ED;
+  --red:#D64545;     --red-tint:#FBEAEA;
+  --amber:#C9891F;   --amber-tint:#FCF3E1;
+  --sblue:#2F6FCB;   --sblue-tint:#E9F0FB;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow: 0 4px 18px rgba(18,58,94,0.10);
+  --shadow-sm: 0 2px 8px rgba(18,58,94,0.08);
+  --nav-h:64px;
+  --status-h:34px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+}
+.device{
+  width:100%;
+  max-width:480px;
+  min-height:100vh;
+  background:var(--white);
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+.statusbar{
+  height:var(--status-h);
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 26px;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:.2px;
+  background:transparent;
+  z-index:50;
+  position:relative;
+}
+.statusbar .icons{display:flex;align-items:center;gap:5px;}
+.screens{
+  position:relative;
+  flex:1 1 auto;
+  overflow:hidden;
+}
+.screen{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  background:var(--bg);
+  transform:translateX(100%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+  opacity:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.screen.active{
+  transform:translateX(0);
+  opacity:1;
+  pointer-events:auto;
+  z-index:5;
+}
+.screen.behind{ transform:translateX(-30%); opacity:0; }
+.screen-scroll{
+  flex:1 1 auto;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.screen-scroll::-webkit-scrollbar{width:0;}
+
+/* ---------- Top bars ---------- */
+.topbar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 18px;
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  flex:0 0 auto;
+}
+.topbar h1{font-size:17px;margin:0;font-weight:700;flex:1;}
+.iconbtn{
+  width:36px;height:36px;border-radius:10px;border:none;background:var(--blue-tint);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--blue);
+  flex:0 0 auto;
+}
+.iconbtn:active{background:#dbe4ec;}
+.iconbtn svg{width:18px;height:18px;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  border:none;border-radius:var(--radius-sm);font-weight:700;font-size:15px;
+  padding:15px 18px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .08s ease, box-shadow .15s ease, background .15s ease;
+  width:100%;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--blue);color:var(--white);box-shadow:var(--shadow-sm);}
+.btn-primary:disabled{background:#A9B7C4;cursor:not-allowed;box-shadow:none;}
+.btn-primary:not(:disabled):active{background:var(--blue-dark);}
+.btn-outline{background:var(--white);color:var(--blue);border:1.5px solid var(--blue);}
+.btn-ghost{background:transparent;color:var(--blue);font-weight:600;}
+.btn-white{background:var(--white);color:var(--blue);box-shadow:var(--shadow-sm);}
+.btn-danger-outline{background:var(--white);color:var(--red);border:1.5px solid var(--red);}
+.btn-sm{padding:10px 14px;font-size:13px;width:auto;}
+
+/* ---------- Forms ---------- */
+.field{margin-bottom:16px;}
+.field label{
+  display:block;font-size:12.5px;font-weight:700;color:var(--text-mut);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;
+}
+.field label .req{color:var(--red);}
+.input, select.input, textarea.input{
+  width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:13px 14px;font-size:15px;font-family:inherit;background:var(--white);color:var(--text);
+  outline:none;transition:border-color .15s ease;
+}
+.input:focus{border-color:var(--blue);}
+.input.invalid{border-color:var(--red);}
+textarea.input{resize:none;min-height:90px;}
+.help-error{font-size:12px;color:var(--red);margin-top:5px;display:none;font-weight:600;}
+.field.error .help-error{display:block;}
+.field.error .input{border-color:var(--red);}
+.input-wrap{position:relative;}
+.input-wrap .input{padding-right:44px;}
+.eye-btn{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:34px;height:34px;border:none;background:transparent;color:var(--text-mut);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.select-wrap{position:relative;}
+.select-wrap select{appearance:none;-webkit-appearance:none;padding-right:36px;}
+.select-wrap:after{
+  content:"";position:absolute;right:15px;top:50%;width:9px;height:9px;
+  border-right:2px solid var(--text-mut);border-bottom:2px solid var(--text-mut);
+  transform:translateY(-65%) rotate(45deg);pointer-events:none;
+}
+.hint{font-size:12px;color:var(--text-faint);margin-top:5px;}
+
+/* ---------- Cards ---------- */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);border:1px solid var(--border);}
+.section-title{font-size:13px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin:22px 18px 10px;}
+
+/* ---------- Splash ---------- */
+.splash{
+  background:linear-gradient(160deg,var(--blue) 0%,var(--blue-dark) 100%);
+  color:var(--white);align-items:center;justify-content:center;text-align:center;
+}
+.splash-logo{
+  width:96px;height:96px;border-radius:26px;background:rgba(255,255,255,0.12);
+  display:flex;align-items:center;justify-content:center;margin-bottom:22px;
+  border:1.5px solid rgba(255,255,255,0.25);
+}
+.splash h2{font-size:22px;margin:0 0 6px;letter-spacing:.3px;}
+.splash p{font-size:13px;color:rgba(255,255,255,.75);margin:0 0 40px;}
+.splash-bar{width:160px;height:4px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden;}
+.splash-bar-fill{height:100%;width:0%;background:var(--white);border-radius:4px;transition:width 1.6s ease;}
+.splash-tap{position:absolute;bottom:34px;font-size:12px;color:rgba(255,255,255,.55);}
+
+/* ---------- Auth ---------- */
+.auth-wrap{padding:36px 26px 26px;flex:1;display:flex;flex-direction:column;}
+.auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:36px;}
+.auth-brand .mark{width:44px;height:44px;border-radius:12px;background:var(--blue);display:flex;align-items:center;justify-content:center;}
+.auth-brand .mark svg{width:24px;height:24px;}
+.auth-brand span{font-weight:800;color:var(--blue);font-size:16px;}
+.auth-wrap h2{font-size:24px;margin:0 0 6px;}
+.auth-wrap .sub{color:var(--text-mut);font-size:14px;margin:0 0 28px;}
+.auth-foot{margin-top:auto;text-align:center;font-size:12.5px;color:var(--text-faint);padding-top:20px;}
+.check-row{display:flex;align-items:center;gap:8px;margin:2px 0 24px;}
+.check-row input{width:17px;height:17px;accent-color:var(--blue);}
+.check-row label{font-size:13.5px;color:var(--text-mut);}
+.link-row{text-align:right;margin:-8px 0 22px;}
+.link-row a, .inline-link{color:var(--blue);font-size:13.5px;font-weight:700;text-decoration:none;cursor:pointer;}
+
+/* ---------- Home ---------- */
+.hero{
+  background:linear-gradient(160deg,var(--blue) 0%, var(--blue-light) 100%);
+  color:var(--white);padding:18px 18px 20px;border-radius:0 0 22px 22px;position:relative;
+}
+.hero-top{display:flex;align-items:center;justify-content:space-between;}
+.hero-greet small{color:rgba(255,255,255,.7);font-size:12.5px;font-weight:600;}
+.hero-greet h2{margin:2px 0 0;font-size:20px;}
+.avatar{
+  width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;
+  border:1.5px solid rgba(255,255,255,.35);cursor:pointer;
+}
+.bell{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;border:none;}
+.bell .dot{position:absolute;top:8px;right:9px;width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--blue);}
+.stat-row{display:flex;gap:10px;margin-top:14px;}
+.stat-card{flex:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px;}
+.stat-card b{font-size:20px;display:block;}
+.stat-card span{font-size:11.5px;color:rgba(255,255,255,.75);}
+.home-body{margin-top:18px;padding:0 18px 18px;}
+.cta-new{
+  background:var(--white);border-radius:18px;box-shadow:0 8px 24px rgba(18,58,94,.18);
+  padding:18px;display:flex;align-items:center;gap:14px;cursor:pointer;border:1px solid var(--border);
+}
+.cta-new .plus{width:46px;height:46px;border-radius:13px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.cta-new .plus svg{width:22px;height:22px;}
+.cta-new b{font-size:15px;display:block;}
+.cta-new span{font-size:12.5px;color:var(--text-mut);}
+.quick-row{display:flex;gap:10px;margin-top:14px;}
+.quick-item{flex:1;background:var(--white);border:1px solid var(--border);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;}
+.quick-item .ic{width:34px;height:34px;border-radius:10px;background:var(--blue-tint);color:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;}
+.quick-item span{font-size:11.5px;font-weight:700;color:var(--text);}
+
+.insp-item-wrap{margin-bottom:10px;}
+.insp-item-wrap .insp-item{margin-bottom:0;}
+.insp-item-wrap .insp-item.has-actions{border-radius:14px 14px 0 0;}
+.insp-actions{display:flex;border:1px solid var(--border);border-top:none;border-radius:0 0 14px 14px;overflow:hidden;background:var(--white);}
+.insp-action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border:none;border-right:1px solid var(--border);background:transparent;font-size:12.5px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit;}
+.insp-action-btn:last-child{border-right:none;}
+.insp-action-btn.danger{color:var(--red);}
+.insp-action-btn:active{background:var(--bg);}
+.insp-item{
+  display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--border);
+  border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer;
+}
+.insp-item .pin{width:40px;height:40px;border-radius:11px;background:var(--blue-tint);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.insp-item .info{flex:1;min-width:0;}
+.insp-item .info b{font-size:14px;display:block;}
+.insp-item .info span{font-size:12px;color:var(--text-mut);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.badge{font-size:10.5px;font-weight:500;padding:4px 9px;border-radius:20px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+.badge-green{background:var(--green-tint);color:var(--green);}
+.badge-red{background:var(--red-tint);color:var(--red);}
+.badge-amber{background:var(--amber-tint);color:var(--amber);}
+.badge-blue{background:var(--sblue-tint);color:var(--sblue);}
+.badge-gray{background:#EEF1F3;color:var(--text-mut);}
+.badge-pending{background:var(--amber-tint);color:var(--amber);}
+
+/* ---------- Bottom nav ---------- */
+.bottomnav{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-around;
+  background:var(--white);border-top:1px solid var(--border);
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));
+  position:relative;z-index:20;
+}
+.navitem{
+  display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;
+  color:var(--text-faint);cursor:pointer;font-size:10.5px;font-weight:700;width:60px;padding:4px 0;
+}
+.navitem svg{width:21px;height:21px;}
+.navitem.active{color:var(--blue);}
+.navitem .fab{
+  width:46px;height:46px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;
+  margin-top:-26px;box-shadow:0 6px 14px rgba(18,58,94,.35);border:3px solid var(--white);
+}
+.navitem .fab svg{width:20px;height:20px;color:var(--white);}
+
+/* ---------- Stepper ---------- */
+.stepper-bar{display:flex;align-items:center;padding:16px 20px 6px;background:var(--white);border-bottom:1px solid var(--border);}
+.step{display:flex;align-items:center;gap:8px;flex:1;}
+.step .circ{
+  width:26px;height:26px;border-radius:50%;background:#EEF1F3;color:var(--text-faint);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:0 0 auto;
+  border:2px solid #EEF1F3;
+}
+.step.done .circ{background:var(--blue);color:var(--white);border-color:var(--blue);}
+.step.current .circ{background:var(--white);color:var(--blue);border-color:var(--blue);}
+.step small{font-size:11px;font-weight:700;color:var(--text-faint);}
+.step.current small, .step.done small{color:var(--blue);}
+.step-line{flex:0 0 auto;width:18px;height:2px;background:#EEF1F3;margin:0 2px;}
+.step.done + .step-line{background:var(--blue);}
+.wizard-foot{
+  flex:0 0 auto;display:flex;gap:10px;padding:14px 18px calc(14px + env(safe-area-inset-bottom,0px));
+  background:var(--white);border-top:1px solid var(--border);
+}
+
+/* ---------- Pills (estado luminaria) ---------- */
+.pill-row{display:flex;flex-wrap:wrap;gap:10px;}
+.pill{
+  flex:1 1 calc(50% - 5px);border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;
+  border:2px solid transparent;background:var(--white);box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;align-items:center;gap:6px;transition:box-shadow .15s ease;
+}
+.pill .dot-ic{width:14px;height:14px;border-radius:50%;}
+.pill span{font-size:12.5px;font-weight:400;}
+.pill[data-state="green"] .dot-ic{background:var(--green);}
+.pill[data-state="red"] .dot-ic{background:var(--red);}
+.pill[data-state="amber"] .dot-ic{background:var(--amber);}
+.pill[data-state="blue"] .dot-ic{background:var(--sblue);}
+.pill.selected[data-state="green"]{border-color:var(--green);background:var(--green);}
+.pill.selected[data-state="red"]{border-color:var(--red);background:var(--red);}
+.pill.selected[data-state="amber"]{border-color:var(--amber);background:var(--amber);}
+.pill.selected[data-state="blue"]{border-color:var(--sblue);background:var(--sblue);}
+.pill.selected span{color:var(--white);}
+.pill.selected .dot-ic{background:var(--white);}
+
+/* ---------- Switch rows ---------- */
+.switch-row{
+  display:flex;align-items:center;justify-content:space-between;padding:13px 14px;
+  background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;
+}
+.switch-row b{font-size:13.5px;font-weight:700;}
+.switch-row span{font-size:11.5px;color:var(--text-mut);display:block;margin-top:2px;}
+.switch{position:relative;width:46px;height:27px;flex:0 0 auto;}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:2;}
+.switch .track{position:absolute;inset:0;background:#DDE3E8;border-radius:20px;transition:background .18s ease;}
+.switch .knob{position:absolute;top:3px;left:3px;width:21px;height:21px;background:var(--white);border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s ease;}
+.switch input:checked + .track{background:var(--blue);}
+.switch input:checked ~ .knob{transform:translateX(19px);}
+
+/* ---------- Photos ---------- */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.photo-add{
+  aspect-ratio:1/1;border:2px dashed var(--border);border-radius:14px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;color:var(--blue);cursor:pointer;background:var(--white);
+}
+.photo-add span{font-size:11px;font-weight:700;color:var(--text-mut);}
+.photo-thumb{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--border);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-thumb .del{
+  position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(18,20,24,.55);
+  color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.photo-slots{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.photo-slot-label{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--text-mut);margin-bottom:7px;text-transform:uppercase;letter-spacing:.3px;}
+.photo-add-lg{
+  aspect-ratio:1/1;border:2px dashed var(--border);border-radius:14px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;color:var(--blue);cursor:pointer;background:var(--white);
+}
+.photo-add-lg span{font-size:12px;font-weight:700;color:var(--text-mut);text-align:center;padding:0 8px;}
+.photo-thumb-lg{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--border);}
+.photo-thumb-lg img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-thumb-lg .del{
+  position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(18,20,24,.6);
+  color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.photo-thumb-lg .badge-ok{position:absolute;bottom:6px;left:6px;background:var(--green);color:#fff;border-radius:20px;padding:3px 9px;font-size:10.5px;font-weight:800;}
+
+/* ---------- GPS box ---------- */
+.gps-box{background:var(--blue-tint);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;}
+.gps-box .pinwrap{width:38px;height:38px;border-radius:10px;background:var(--white);display:flex;align-items:center;justify-content:center;color:var(--blue);flex:0 0 auto;}
+.gps-box .txt{flex:1;min-width:0;}
+.gps-box .txt b{font-size:13px;display:block;}
+.gps-box .txt span{font-size:11.5px;color:var(--text-mut);font-family:monospace;}
+.pulse{animation:pulse 1.4s ease infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(18,58,94,.35);}70%{box-shadow:0 0 0 10px rgba(18,58,94,0);}100%{box-shadow:0 0 0 0 rgba(18,58,94,0);}}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:absolute;left:16px;right:16px;bottom:24px;background:#1B2733;color:#fff;padding:13px 16px;
+  border-radius:12px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);transform:translateY(120px);opacity:0;transition:all .28s ease;z-index:200;pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast .ic{width:22px;height:22px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+
+/* ---------- Misc ---------- */
+.empty-state{padding:50px 20px;text-align:center;color:var(--text-faint);}
+.empty-state svg{width:52px;height:52px;color:var(--border);margin-bottom:12px;}
+.empty-state b{display:block;color:var(--text-mut);font-size:14px;margin-bottom:4px;}
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;}
+.search-bar input{border:none;outline:none;flex:1;font-size:14px;font-family:inherit;}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{flex:0 0 auto;font-size:12px;font-weight:700;padding:7px 12px;border-radius:20px;background:var(--white);border:1.5px solid var(--border);color:var(--text-mut);cursor:pointer;white-space:nowrap;}
+.chip.active{background:var(--blue);color:var(--white);border-color:var(--blue);}
+.detail-row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-row span{color:var(--text-mut);}
+.detail-row b{text-align:right;max-width:60%;}
+.profile-hero{background:linear-gradient(160deg,var(--blue) 0%, var(--blue-light) 100%);padding:30px 18px 26px;color:#fff;text-align:center;border-radius:0 0 26px 26px;}
+.profile-hero .av{width:78px;height:78px;border-radius:50%;background:rgba(255,255,255,.16);border:2.5px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;margin:0 auto 10px;}
+.settings-item{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:9px;cursor:pointer;}
+.settings-item .ic{width:34px;height:34px;border-radius:9px;background:var(--blue-tint);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.settings-item .tx{flex:1;}
+.settings-item .tx b{font-size:14px;display:block;}
+.settings-item .tx span{font-size:11.5px;color:var(--text-mut);}
+.modal-overlay{
+  position:absolute;inset:0;background:rgba(15,25,35,.45);display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:100;
+}
+.modal-overlay.show{opacity:1;pointer-events:auto;}
+.modal-sheet{
+  background:#fff;width:100%;border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom,0px));
+  transform:translateY(40px);transition:transform .25s ease;max-height:80%;overflow-y:auto;
+}
+.modal-overlay.show .modal-sheet{transform:translateY(0);}
+.modal-handle{width:38px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 16px;}
+.row-2{display:flex;gap:10px;}
+.row-2 > *{flex:1;}
+a{color:var(--blue);}
+::placeholder{color:#AEB9C2;}
+.header-back{display:flex;align-items:center;gap:6px;}
+.pw-strength{height:4px;background:#EEF1F3;border-radius:4px;margin-top:8px;overflow:hidden;}
+.pw-strength i{display:block;height:100%;width:0%;background:var(--red);transition:all .2s ease;}
+
+</style>
+</head>
+<body>
+
+<div class="device" id="device">
+
+  <div class="screens" id="screens">
+
+    <!-- ============ SPLASH ============ -->
+    <div class="screen active splash" data-screen="splash" id="scr-splash" onclick="onSplashTap()">
+      <div class="splash-logo">
+        <span style="font-size:46px;line-height:1;">💡</span>
+      </div>
+      <h2>EERSSA Inspector</h2>
+      <p>Superintendencia de Alumbrado Público · SAPG</p>
+      <div class="splash-bar"><div class="splash-bar-fill" id="splashFill"></div></div>
+      <div class="splash-tap">Toca para continuar</div>
+    </div>
+
+    <!-- ============ LOGIN ============ -->
+    <div class="screen" data-screen="login" id="scr-login">
+      <div class="screen-scroll">
+        <div class="auth-wrap">
+          <div class="auth-brand">
+            <div class="mark"><span style="font-size:22px;line-height:1;">💡</span></div>
+            <span>EERSSA · Inspector</span>
+          </div>
+          <h2>Bienvenido</h2>
+          <p class="sub">Ingresa tus credenciales para continuar.</p>
+
+          <div class="field" id="f-user">
+            <label>Usuario o cédula <span class="req">*</span></label>
+            <input class="input" id="loginUser" placeholder="Ej. 1104567890" oninput="clearFieldError('f-user')">
+            <div class="help-error">Ingresa tu usuario o número de cédula.</div>
+          </div>
+
+          <div class="field" id="f-pass">
+            <label>Contraseña <span class="req">*</span></label>
+            <div class="input-wrap">
+              <input class="input" type="password" id="loginPass" placeholder="••••••••" oninput="clearFieldError('f-pass')">
+              <button type="button" class="eye-btn" onclick="toggleEye('loginPass', this)" aria-label="Ver contraseña">
+                <svg class="eye-open" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" style="display:none"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.24 4.24M9.9 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.5 13.5 0 0 1-3.2 3.9M6.6 6.6C4 8.3 2 12 2 12s4 7 11 7c1.4 0 2.7-.24 3.9-.66"/></svg>
+              </button>
+            </div>
+            <div class="help-error">Ingresa tu contraseña.</div>
+          </div>
+
+          <div class="link-row"><span class="inline-link" onclick="go('forgot')">¿Olvidaste tu contraseña?</span></div>
+          <div style="text-align:center;margin:-14px 0 22px;">
+            <span class="inline-link" style="font-size:12.5px;color:var(--text-mut);font-weight:600;" onclick="go('config')">⚙ Configurar conexión Supabase</span>
+          </div>
+
+          <button class="btn btn-primary" onclick="attemptLogin()">Iniciar sesión</button>
+
+          <div class="check-row" style="margin-top:20px;">
+            <input type="checkbox" id="rememberMe" checked>
+            <label for="rememberMe">Mantener sesión iniciada en este dispositivo</label>
+          </div>
+
+          <div class="auth-foot">EERSSA · Empresa Eléctrica Regional del Sur S.A.<br>v1.0.0 — Prototipo navegable</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ FORGOT PASSWORD ============ -->
+    <div class="screen" data-screen="forgot" id="scr-forgot">
+      <div class="topbar">
+        <button class="iconbtn" onclick="go('login')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h1>Recuperar contraseña</h1>
+      </div>
+      <div class="screen-scroll">
+        <div class="auth-wrap" style="padding-top:26px;">
+          <div id="forgot-form">
+            <p class="sub" style="margin-top:-6px;">Ingresa tu correo institucional y te enviaremos un enlace para restablecer tu contraseña.</p>
+            <div class="field" id="f-forgot">
+              <label>Correo institucional <span class="req">*</span></label>
+              <input class="input" id="forgotEmail" placeholder="nombre.apellido@eerssa.gob.ec" oninput="clearFieldError('f-forgot')">
+              <div class="help-error">Ingresa un correo válido.</div>
+            </div>
+            <button class="btn btn-primary" onclick="sendRecovery()">Enviar enlace de recuperación</button>
+          </div>
+          <div id="forgot-success" style="display:none;text-align:center;padding-top:20px;">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--green-tint);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#2E9E5B" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h2 style="font-size:18px;">Enlace enviado</h2>
+            <p class="sub">Revisa tu bandeja de entrada en <b id="forgotEmailShow"></b> y sigue las instrucciones para restablecer tu contraseña.</p>
+            <button class="btn btn-outline" onclick="go('login')">Volver a inicio de sesión</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ HOME ============ -->
+    <div class="screen" data-screen="home" id="scr-home">
+      <div class="screen-scroll">
+        <div class="hero">
+          <div class="hero-top">
+            <div class="hero-greet"><small id="homeDate">Cargando fecha…</small><h2>Hola, <span id="homeUserName">Inspector</span></h2></div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <button class="bell" onclick="showToast('Sin notificaciones nuevas por ahora','info')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span class="dot"></span></button>
+              <div class="avatar" onclick="go('perfil')" id="homeAvatarInit">I</div>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-card"><b id="statHoy">0</b><span>Hoy</span></div>
+            <div class="stat-card"><b id="statPend">0</b><span>Pendientes</span></div>
+            <div class="stat-card"><b id="statMes">0</b><span>Este mes</span></div>
+          </div>
+        </div>
+        <div class="home-body">
+          <div class="cta-new" onclick="startNewInspection()">
+            <div class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></div>
+            <div style="flex:1;"><b>Nueva inspección</b><span>Registra la luminaria</span></div>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#AEB9C2" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;margin-bottom:10px;">
+            <span style="font-weight:800;font-size:14px;">Inspecciones recientes</span>
+            <span class="inline-link" style="font-size:12.5px;" onclick="go('historial')">Ver todo</span>
+          </div>
+          <div id="homeRecentList"></div>
+        </div>
+      </div>
+      <div class="bottomnav" id="bn-home"></div>
+    </div>
+
+    <!-- ============ NUEVA INSPECCION - PASO 1 ============ -->
+    <div class="screen" data-screen="ni1" id="scr-ni1">
+      <div class="topbar">
+        <button class="iconbtn" onclick="confirmExitWizard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <h1>Nueva inspección</h1>
+      </div>
+      <div class="stepper-bar" id="stepperBar1"></div>
+      <div class="screen-scroll">
+        <div style="padding:18px;">
+          <div class="section-title" style="margin:0 0 14px;padding:0;">Datos del punto</div>
+
+          <div class="row-2">
+            <div class="field" id="f-fecha">
+              <label>Fecha <span class="req">*</span></label>
+              <input class="input" type="date" id="niFecha" oninput="clearFieldError('f-fecha')">
+              <div class="help-error">Selecciona la fecha.</div>
+            </div>
+            <div class="field" id="f-hora">
+              <label>Hora <span class="req">*</span></label>
+              <input class="input" type="time" id="niHora" oninput="clearFieldError('f-hora')">
+              <div class="help-error">Selecciona la hora.</div>
+            </div>
+          </div>
+
+          <div class="field" id="f-poste">
+            <label>Nro. de poste <span class="req">*</span></label>
+            <input class="input" id="niPoste" placeholder="Ej. P-04521" oninput="clearFieldError('f-poste')">
+            <div class="help-error">Ingresa el número de poste.</div>
+          </div>
+
+          <div class="field" id="f-gps">
+            <label>Ubicación GPS (simulada) <span class="req">*</span></label>
+            <div class="gps-box">
+              <div class="pinwrap" id="gpsPinWrap"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s7-7.5 7-13a7 7 0 10-14 0c0 5.5 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+              <div class="txt">
+                <b id="gpsLabel">Sin ubicación capturada</b>
+                <span id="gpsCoords">Toca "Obtener ubicación" para simular el GPS</span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" style="margin-top:10px;width:100%;" onclick="simulateGPS()">Obtener ubicación GPS</button>
+            <div class="help-error">Debes capturar la ubicación GPS.</div>
+          </div>
+
+          <div class="field" id="f-provincia">
+            <label>Provincia <span class="req">*</span></label>
+            <div class="select-wrap"><select class="input" id="niProvincia" onchange="onProvinciaChange()"></select></div>
+            <div class="help-error">Selecciona la provincia.</div>
+          </div>
+          <div class="field" id="f-canton">
+            <label>Cantón <span class="req">*</span></label>
+            <div class="select-wrap"><select class="input" id="niCanton" onchange="onCantonChange()"></select></div>
+            <div class="help-error">Selecciona el cantón.</div>
+          </div>
+          <div class="field" id="f-parroquia">
+            <label>Parroquia <span class="req">*</span></label>
+            <div class="select-wrap"><select class="input" id="niParroquia" onchange="clearFieldError('f-parroquia')"></select></div>
+            <div class="help-error">Selecciona la parroquia.</div>
+            <div class="hint">División político-administrativa referencial (INEC). Validar contra catálogo oficial completo antes de producción.</div>
+          </div>
+
+          <div class="field" id="f-alim">
+            <label>Alimentador <span class="req">*</span></label>
+            <div class="select-wrap"><select class="input" id="niAlimentador" onchange="clearFieldError('f-alim')"></select></div>
+            <div class="help-error">Selecciona el alimentador.</div>
+            <div class="hint">Listado oficial de alimentadores (fuente: Alimentadores.xlsx).</div>
+          </div>
+
+          <div class="field" id="f-tipo">
+            <label>Tipo de luminaria <span class="req">*</span></label>
+            <div class="row-2">
+              <button type="button" class="btn btn-outline" id="tipoSodio" onclick="selectTipo('SODIO')">Sodio</button>
+              <button type="button" class="btn btn-outline" id="tipoLed" onclick="selectTipo('LED')">LED</button>
+            </div>
+            <div class="help-error">Selecciona el tipo de luminaria.</div>
+          </div>
+
+          <div class="field" id="f-potencia">
+            <label>Potencia (W) <span class="req">*</span></label>
+            <input class="input" type="number" id="niPotencia" inputmode="numeric" min="1" step="1" placeholder="Ej. 150" oninput="clearFieldError('f-potencia')">
+            <div class="help-error">Ingresa la potencia en vatios.</div>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-foot">
+        <button class="btn btn-primary" onclick="validateStep1()">Siguiente</button>
+      </div>
+    </div>
+
+    <!-- ============ NUEVA INSPECCION - PASO 2 ============ -->
+    <div class="screen" data-screen="ni2" id="scr-ni2">
+      <div class="topbar">
+        <button class="iconbtn" onclick="go('ni1')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <h1>Nueva inspección</h1>
+      </div>
+      <div class="stepper-bar" id="stepperBar2"></div>
+      <div class="screen-scroll">
+        <div style="padding:18px;">
+          <div class="section-title" style="margin:0 0 12px;padding:0;">Estado de la luminaria <span style="color:var(--red);">*</span></div>
+          <div class="pill-row" id="f-estado">
+            <div class="pill" data-state="green" data-val="Encendida" onclick="selectEstado(this)"><div class="dot-ic"></div><span>Encendida</span></div>
+            <div class="pill" data-state="red" data-val="Apagada" onclick="selectEstado(this)"><div class="dot-ic"></div><span>Apagada</span></div>
+            <div class="pill" data-state="amber" data-val="Intermitente" onclick="selectEstado(this)"><div class="dot-ic"></div><span>Intermitente</span></div>
+            <div class="pill" data-state="blue" data-val="Sin Novedad" onclick="selectEstado(this)"><div class="dot-ic"></div><span>Sin Novedad</span></div>
+          </div>
+          <div class="help-error" id="err-estado" style="margin-top:8px;">Selecciona el estado de la luminaria.</div>
+
+          <div class="section-title" style="margin:24px 0 12px;padding:0;">Estado del brazo</div>
+          <div class="switch-row">
+            <div><b>Brazo mal orientado</b><span>Activa si el brazo no apunta correctamente a la vía</span></div>
+            <label class="switch"><input type="checkbox" id="swBrazo"><div class="track"></div><div class="knob"></div></label>
+          </div>
+
+          <div class="section-title" style="margin:24px 0 12px;padding:0;">Estado del difusor</div>
+          <div class="switch-row"><div><b>Roto</b></div><label class="switch"><input type="checkbox" data-dif="Roto"><div class="track"></div><div class="knob"></div></label></div>
+          <div class="switch-row"><div><b>Desprendido</b></div><label class="switch"><input type="checkbox" data-dif="Desprendido"><div class="track"></div><div class="knob"></div></label></div>
+          <div class="switch-row"><div><b>No existe</b></div><label class="switch"><input type="checkbox" data-dif="No existe"><div class="track"></div><div class="knob"></div></label></div>
+          <div class="switch-row"><div><b>Opaco</b></div><label class="switch"><input type="checkbox" data-dif="Opaco"><div class="track"></div><div class="knob"></div></label></div>
+
+          <div class="section-title" style="margin:24px 0 12px;padding:0;">Otros</div>
+          <div class="switch-row"><div><b>Falta luminaria</b></div><label class="switch"><input type="checkbox" data-otro="Falta luminaria"><div class="track"></div><div class="knob"></div></label></div>
+          <div class="switch-row"><div><b>Presencia de vegetación</b></div><label class="switch"><input type="checkbox" data-otro="Presencia de vegetación"><div class="track"></div><div class="knob"></div></label></div>
+
+          <div class="field" style="margin-top:20px;">
+            <label>Observaciones</label>
+            <textarea class="input" id="niObs" placeholder="Detalles adicionales de la inspección…"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-foot">
+        <button class="btn btn-outline" style="width:auto;padding:15px 20px;" onclick="go('ni1')">Atrás</button>
+        <button class="btn btn-primary" onclick="validateStep2()">Siguiente</button>
+      </div>
+    </div>
+
+    <!-- ============ NUEVA INSPECCION - PASO 3 ============ -->
+    <div class="screen" data-screen="ni3" id="scr-ni3">
+      <div class="topbar">
+        <button class="iconbtn" onclick="ni3Back()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <h1>Nueva inspección</h1>
+      </div>
+      <div class="stepper-bar" id="stepperBar3"></div>
+      <div class="screen-scroll">
+        <div style="padding:18px;">
+          <div class="section-title" style="margin:0 0 6px;padding:0;">Evidencia fotográfica <span style="color:var(--red);">*</span></div>
+          <p class="hint" style="margin-bottom:14px;">Se requieren exactamente 2 fotografías: una de día y otra de noche. Si falta alguna, la inspección se guarda como <b>pendiente</b> hasta completarla.</p>
+          <div class="photo-slots" id="photoSlots"></div>
+          <input type="file" id="photoInputDia" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event,'dia')">
+          <input type="file" id="photoInputNoche" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event,'noche')">
+          <div class="hint" id="photosPendingHint" style="margin-top:10px;color:var(--amber);font-weight:700;display:none;">⚠ Faltan fotografías: se guardará como pendiente.</div>
+
+          <div class="card" style="margin-top:22px;">
+            <div style="font-weight:800;font-size:13px;margin-bottom:10px;">Resumen de la inspección</div>
+            <div class="detail-row"><span>Poste</span><b id="sumPoste">—</b></div>
+            <div class="detail-row"><span>Ubicación</span><b id="sumUbic">—</b></div>
+            <div class="detail-row"><span>Luminaria</span><b id="sumLum">—</b></div>
+            <div class="detail-row"><span>Estado</span><b id="sumEstado">—</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-foot">
+        <button class="btn btn-outline" style="width:auto;padding:15px 20px;" onclick="ni3Back()">Atrás</button>
+        <button class="btn btn-primary" id="btnFinalize" onclick="finalizeInspection()">Finalizar inspección</button>
+      </div>
+    </div>
+
+    <!-- ============ HISTORIAL ============ -->
+    <div class="screen" data-screen="historial" id="scr-historial">
+      <div class="topbar"><h1>Historial</h1></div>
+      <div style="padding:14px 18px 6px;display:flex;flex-direction:column;gap:10px;">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#93A0AC" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input placeholder="Buscar por poste, parroquia…" oninput="renderHistorial(this.value)">
+        </div>
+        <div class="chip-row" id="historialChips"></div>
+      </div>
+      <div class="screen-scroll">
+        <div style="padding:6px 18px 18px;" id="historialList"></div>
+      </div>
+      <div class="bottomnav" id="bn-historial"></div>
+    </div>
+
+    <!-- ============ HISTORIAL DETALLE ============ -->
+    <div class="screen" data-screen="hdetalle" id="scr-hdetalle">
+      <div class="topbar">
+        <button class="iconbtn" onclick="go('historial')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <h1>Detalle de inspección</h1>
+      </div>
+      <div class="screen-scroll">
+        <div style="padding:18px;" id="hdetalleBody"></div>
+      </div>
+    </div>
+
+    <!-- ============ CONFIGURACION ============ -->
+    <div class="screen" data-screen="config" id="scr-config">
+      <div class="topbar"><h1>Configuración</h1></div>
+      <div class="screen-scroll">
+        <div style="padding:16px 18px;">
+          <div id="backToLoginRow" style="display:none;background:var(--blue-tint);border-radius:12px;padding:11px 14px;margin-bottom:16px;text-align:center;">
+            <span class="inline-link" onclick="go('login')">← Volver a inicio de sesión</span>
+          </div>
+          <div class="section-title" style="margin:0 0 10px;padding:0;">Preferencias</div>
+          <div class="settings-item">
+            <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+            <div class="tx"><b>Notificaciones</b><span>Alertas de tareas pendientes</span></div>
+            <label class="switch"><input type="checkbox" checked><div class="track"></div><div class="knob"></div></label>
+          </div>
+          <div class="settings-item" onclick="manualSync()">
+            <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+            <div class="tx"><b>Sincronizar datos</b><span id="lastSyncLabel">Última sync: —</span></div>
+          </div>
+
+          <div class="section-title" style="margin:22px 0 10px;padding:0;">Conexión Supabase</div>
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <span id="connDot" style="width:9px;height:9px;border-radius:50%;background:var(--text-faint);flex:0 0 auto;"></span>
+              <span id="connLabel" style="font-size:13px;font-weight:700;color:var(--text-mut);">Verificando conexión…</span>
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>URL del proyecto</label>
+              <input class="input" id="cfgSupaUrl" placeholder="https://xxxxx.supabase.co">
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Clave anon / public</label>
+              <input class="input" id="cfgSupaKey" placeholder="eyJhbGciOi...">
+            </div>
+            <div class="row-2">
+              <button class="btn btn-outline" onclick="testSupabaseConnection()">Probar conexión</button>
+              <button class="btn btn-primary" onclick="saveSupabaseConnection()">Guardar</button>
+            </div>
+            <p class="hint" style="margin-top:10px;">Estos datos se guardan solo en este dispositivo. Los encuentras en tu proyecto de Supabase, en Settings → API.</p>
+          </div>
+
+          <div class="section-title" style="margin:22px 0 10px;padding:0;">Cuenta</div>
+          <div class="settings-item" onclick="openChangePassword()">
+            <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+            <div class="tx"><b>Cambiar contraseña</b><span>Actualiza tu clave de acceso</span></div>
+          </div>
+          <div class="settings-item" onclick="go('perfil')">
+            <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+            <div class="tx"><b>Mi perfil</b><span>Datos personales y cargo</span></div>
+          </div>
+
+          <div class="section-title" style="margin:22px 0 10px;padding:0;">Acerca de</div>
+          <div class="settings-item">
+            <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>
+            <div class="tx"><b>Versión de la app</b><span>1.0.0 (prototipo)</span></div>
+          </div>
+          <div class="settings-item">
+            <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div class="tx"><b>Idioma</b><span>Español (Ecuador)</span></div>
+          </div>
+
+          <button class="btn btn-danger-outline" style="margin-top:24px;" onclick="logout()">Cerrar sesión</button>
+        </div>
+      </div>
+      <div class="bottomnav" id="bn-config"></div>
+    </div>
+
+    <!-- ============ PERFIL ============ -->
+    <div class="screen" data-screen="perfil" id="scr-perfil">
+      <div class="screen-scroll">
+        <div class="profile-hero">
+          <div class="av" id="perfilAvatarInit">I</div>
+          <div style="font-size:17px;font-weight:800;" id="perfilNombreShow">Inspector EERSSA</div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,.75);margin-top:2px;" id="perfilCargoShow">Inspector de Campo · SAPG</div>
+        </div>
+        <div style="padding:16px 18px;">
+          <div class="stat-row" style="margin-top:0;">
+            <div class="stat-card" style="background:var(--blue-tint);border-color:var(--border);"><b style="color:var(--blue);" id="perfilStatTotal">0</b><span style="color:var(--text-mut);">Inspecciones</span></div>
+            <div class="stat-card" style="background:var(--blue-tint);border-color:var(--border);"><b style="color:var(--blue);">98%</b><span style="color:var(--text-mut);">Completitud</span></div>
+            <div class="stat-card" style="background:var(--blue-tint);border-color:var(--border);"><b style="color:var(--blue);">4.9</b><span style="color:var(--text-mut);">Evaluación</span></div>
+          </div>
+
+          <div class="section-title" style="margin:22px 0 10px;padding:0;">Datos personales</div>
+          <div class="card">
+            <div class="field" style="margin-bottom:12px;">
+              <label>Nombre completo</label>
+              <input class="input" id="perfilNombre" disabled>
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Cédula</label>
+              <input class="input" id="perfilCedula" disabled>
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Cargo</label>
+              <input class="input" id="perfilCargo" disabled>
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Correo</label>
+              <input class="input" id="perfilCorreo" disabled>
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Teléfono</label>
+              <input class="input" id="perfilTelefono" disabled>
+            </div>
+          </div>
+          <button class="btn btn-outline" style="margin-top:14px;" id="perfilEditBtn" onclick="toggleEditPerfil()">Editar perfil</button>
+        </div>
+      </div>
+      <div class="bottomnav" id="bn-perfil"></div>
+    </div>
+
+  </div>
+
+  <!-- ============ MODAL: cambiar contraseña ============ -->
+  <div class="modal-overlay" id="modalPass">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h2 style="font-size:17px;margin:0 0 4px;">Cambiar contraseña</h2>
+      <p class="sub" style="margin-top:0;">Elige una contraseña segura para tu cuenta.</p>
+      <div class="field">
+        <label>Contraseña actual</label>
+        <div class="input-wrap">
+          <input class="input" type="password" id="curPass">
+          <button type="button" class="eye-btn" onclick="toggleEye('curPass', this)">
+            <svg class="eye-open" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-closed" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" style="display:none"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.24 4.24M9.9 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.5 13.5 0 0 1-3.2 3.9M6.6 6.6C4 8.3 2 12 2 12s4 7 11 7c1.4 0 2.7-.24 3.9-.66"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Nueva contraseña</label>
+        <div class="input-wrap">
+          <input class="input" type="password" id="newPass" oninput="checkStrength()">
+          <button type="button" class="eye-btn" onclick="toggleEye('newPass', this)">
+            <svg class="eye-open" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-closed" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" style="display:none"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.24 4.24M9.9 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.5 13.5 0 0 1-3.2 3.9M6.6 6.6C4 8.3 2 12 2 12s4 7 11 7c1.4 0 2.7-.24 3.9-.66"/></svg>
+          </button>
+        </div>
+        <div class="pw-strength"><i id="pwStrengthBar"></i></div>
+      </div>
+      <div class="row-2" style="margin-top:6px;">
+        <button class="btn btn-outline" onclick="closeModal('modalPass')">Cancelar</button>
+        <button class="btn btn-primary" onclick="savePassword()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: salir del formulario ============ -->
+  <div class="modal-overlay" id="modalExit">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h2 style="font-size:17px;margin:0 0 4px;">¿Salir sin guardar?</h2>
+      <p class="sub" style="margin-top:0;">Perderás los datos ingresados en esta inspección.</p>
+      <div class="row-2">
+        <button class="btn btn-outline" onclick="closeModal('modalExit')">Continuar editando</button>
+        <button class="btn" style="background:var(--red);color:#fff;" onclick="discardWizard()">Salir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: eliminar inspección ============ -->
+  <div class="modal-overlay" id="modalDelete">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h2 style="font-size:17px;margin:0 0 4px;">¿Eliminar esta inspección?</h2>
+      <p class="sub" style="margin-top:0;">Esta acción no se puede deshacer. Si ya estaba sincronizada, también se eliminará de Supabase.</p>
+      <div class="row-2">
+        <button class="btn btn-outline" onclick="closeModal('modalDelete')">Cancelar</button>
+        <button class="btn" style="background:var(--red);color:#fff;" onclick="confirmDelete()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><div class="ic"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span id="toastMsg">Listo</span></div>
+
+</div>
+
+<script>
+/* =========================================================
+   DATOS: DIVISIÓN POLÍTICO-ADMINISTRATIVA (INEC) — referencial
+   Provincias del área de servicio de EERSSA
+   ========================================================= */
+const DPA = {
+  "Loja": {
+    "Loja": ["El Sagrario","Sucre","San Sebastián","El Valle","Punzara","Chuquiribamba","El Cisne","Gualel","Jimbilla","Malacatos","San Lucas","San Pedro de Vilcabamba","Santiago","Taquil","Vilcabamba","Yangana","Quinara","Chantaco"],
+    "Catamayo": ["Catamayo","El Tambo","Guayquichuma","San Pedro de la Bendita","Zambi"],
+    "Calvas": ["Cariamanga","Colaisaca","El Lucero","San Vicente","Utuana"],
+    "Celica": ["Celica","Cruzpamba","Pozul","Sabanilla","Teniente Maximiliano Rodríguez"],
+    "Chaguarpamba": ["Chaguarpamba","Amarillos","Buenavista","El Rosario","Santa Rufina"],
+    "Espíndola": ["Amaluza","Bellavista","El Ingenio","Jimbura","27 de Abril"],
+    "Gonzanamá": ["Gonzanamá","Changaimina","Fundochamba","Nambacola","Purunuma","Sacapalca"],
+    "Macará": ["Macará","La Victoria","Larama","Sabiango"],
+    "Paltas": ["Catacocha","Cangonamá","Casanga","Guachanamá","Lauro Guerrero","Orianga","San Antonio","Yamana"],
+    "Puyango": ["Alamor","Arenales","Ciano","El Arenal","Mercadillo","Vicentino"],
+    "Saraguro": ["Saraguro","El Paraíso de Celén","El Tablón","Lluzhapa","Manú","San Antonio de Cumbe","San Pablo de Tenta","San Sebastián de Yulúc","Selva Alegre","Urdaneta"],
+    "Sozoranga": ["Sozoranga","Nueva Fátima","Tacamoros"],
+    "Zapotillo": ["Zapotillo","Bolaspamba","Cazaderos","Garza Real","Limones","Mangahurco","Paletillas"],
+    "Pindal": ["12 de Diciembre","Chaquinal","Milagros"],
+    "Quilanga": ["Quilanga","Fundochamba","San Antonio de las Aradas"],
+    "Olmedo": ["Olmedo","La Tingue"]
+  },
+  "Zamora Chinchipe": {
+    "Zamora": ["Zamora","Cumbaratza","Guadalupe","Imbana","Sabanilla","San Carlos de Las Minas","Timbara","Zambiza"],
+    "Chinchipe": ["Zumba","Chito","El Chorro","La Chonta","Pucapamba","San Andrés"],
+    "Nangaritza": ["Guayzimi","Nuevo Quito","Zurmi"],
+    "Yacuambi": ["28 de Mayo","La Paz","Tutupali"],
+    "Yantzaza": ["Yantzaza","Chicaña","Los Encuentros"],
+    "El Pangui": ["El Pangui","El Guisme","Pachicutza","Tundayme"],
+    "Centinela del Cóndor": ["Zumbi","Los Encuentros","Panguintza"],
+    "Palanda": ["Palanda","El Porvenir del Carmen","San Francisco del Vergel","Valladolid"],
+    "Paquisha": ["Paquisha","Bellavista","Nuevo Paraíso"]
+  },
+  "Morona Santiago": {
+    "Gualaquiza": ["Gualaquiza","Amazonas","Bermejos","Bomboiza","Chiguinda","El Ideal","El Rosario","Mercedes Molina","Nueva Tarqui","San Miguel de Cuyes"],
+    "Morona": ["Macas","Alshi","General Proaño","Río Blanco","Sevilla Don Bosco","Zúñac"],
+    "Limón Indanza": ["General Leonidas Plaza","Indanza","San Antonio","San Miguel de Conchay","Santa Susana de Chiviaza","Yunganza"],
+    "Palora": ["Palora","Arapicos","Cumandá","Sangay"],
+    "Santiago": ["Méndez","Copal","Patuca","San Francisco de Chinimbimi","Tayuza"],
+    "Sucúa": ["Sucúa","Asunción","Huambi"],
+    "Huamboya": ["Huamboya","Chiguaza","Pablo Sexto"],
+    "San Juan Bosco": ["San Juan Bosco","Pan de Azúcar","San Carlos de Limón","San Jacinto de Wakambeis"],
+    "Taisha": ["Taisha","Huasaga","Macuma","Pumpuentsa","Tuutinentza"],
+    "Logroño": ["Logroño","Shimpis","Yaupi"],
+    "Pablo Sexto": ["Pablo Sexto"],
+    "Tiwintza": ["Santiago de Pananza","San José de Morona"]
+  }
+};
+
+// Alimentadores — listado oficial (fuente: Alimentadores.xlsx)
+const ALIMENTADORES = [
+  "Alamor","Amaluza","Amaluza 2","Bomboiza","Buena Vista","Cajanuma",
+  "Cariamanga 1","Cariamanga 2","Carigán","Catacocha","Catamayo","Celi Román",
+  "Celica","Centro","Chaguarpamba","Changaimina","Chontacruz","Chuquiribamba",
+  "Consacola","Cruzpamba","El Calvario","El Empalme","El Pangui","El Tambo",
+  "Gonzanamá","Guachanamá","Gualaquiza","Hospital","Hospital de Zamora","Ingenio",
+  "IV Centenario","Juan de Salinas","La Guatara","La Saquea","Los Encuentros","Macará 1",
+  "Macará 2","Malacatos","Malca - San Pedro","Manú","Mercadillo","Motupe",
+  "Nambacola","Nambija","Norte","Olmedo","Palanda","Paquisha",
+  "Parque Industrial","Pindal","Pío Jaramillo","Playas","Pózul","Quilanga",
+  "Rumishitana","Sabanilla","San Cayetano","San Lucas","San Pedro Martir","Santa Teresita",
+  "Saraguro","Sozoranga","Sur","Tierras Moradas","Utuana","Valladolid",
+  "Velacruz","Vilcabamba","Villonaco","Yacuambi","Yaguarcuna","Yantzaza",
+  "Yantzaza 2","Yantzaza 3","Yantzaza 4","Zamora 1","Zamora 2","Zamora 3",
+  "Zapotillo","Zumba"
+];
+
+function sortEs(arr){ return arr.slice().sort((a,b)=>a.localeCompare(b,'es')); }
+function svgPlaceholder(text, bg){
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' font-size='26' fill='#fff' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-weight='700'>${text}</text></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+function isPending(insp){ return !(insp.photos && insp.photos.dia && insp.photos.noche); }
+
+/* =========================================================
+   PERSISTENCIA LOCAL (IndexedDB) — funciona 100% sin internet
+   ========================================================= */
+const IDB_NAME = 'eerssa_inspector';
+const IDB_VERSION = 1;
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains('inspecciones')) db.createObjectStore('inspecciones', {keyPath:'id'});
+      if(!db.objectStoreNames.contains('config')) db.createObjectStore('config', {keyPath:'key'});
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function idbStore(name, mode){ const db = await idbOpen(); return db.transaction(name, mode).objectStore(name); }
+async function idbGetAll(name){
+  const store = await idbStore(name,'readonly');
+  return new Promise((resolve,reject)=>{ const r=store.getAll(); r.onsuccess=()=>resolve(r.result||[]); r.onerror=()=>reject(r.error); });
+}
+async function idbGet(name, key){
+  const store = await idbStore(name,'readonly');
+  return new Promise((resolve,reject)=>{ const r=store.get(key); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); });
+}
+async function idbPut(name, value){
+  const store = await idbStore(name,'readwrite');
+  return new Promise((resolve,reject)=>{ const r=store.put(value); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); });
+}
+async function idbDelete(name, key){
+  const store = await idbStore(name,'readwrite');
+  return new Promise((resolve,reject)=>{ const r=store.delete(key); r.onsuccess=()=>resolve(); r.onerror=()=>reject(r.error); });
+}
+async function cfgGet(key){ const row = await idbGet('config', key); return row ? row.value : null; }
+async function cfgSet(key, value){ return idbPut('config', {key, value}); }
+
+/* =========================================================
+   SINCRONIZACIÓN CON SUPABASE (datos + fotografías)
+   Se ejecuta solo cuando hay internet; si falla o no hay
+   conexión, la app sigue funcionando 100% local y reintenta después.
+   ========================================================= */
+let supabaseClient = null;
+async function getSupabase(){
+  if(supabaseClient) return supabaseClient;
+  const url = await cfgGet('supabaseUrl');
+  const key = await cfgGet('supabaseAnonKey');
+  if(!url || !key) return null;
+  try{
+    const mod = await import('https://esm.sh/@supabase/supabase-js@2');
+    supabaseClient = mod.createClient(url, key, { auth:{ persistSession:false, autoRefreshToken:false } });
+    return supabaseClient;
+  }catch(e){
+    console.warn('No se pudo cargar el cliente de Supabase (¿sin conexión?)', e);
+    return null;
+  }
+}
+function toEmail(userOrCedula){
+  const v = (userOrCedula||'').trim();
+  return v.includes('@') ? v : v + '@eerssa.gob.ec';
+}
+async function dataUrlOrBlobToBlob(val){
+  if(val instanceof Blob) return val;
+  const res = await fetch(val);
+  return res.blob();
+}
+async function uploadPhoto(sb, rec, slot){
+  const val = rec.photos ? rec.photos[slot] : null;
+  if(!val) return null;
+  if(typeof val === 'string' && val.startsWith('http')) return val; // ya estaba subida
+  const blob = await dataUrlOrBlobToBlob(val);
+  const path = rec.id + '/' + slot + '.jpg';
+  const { error } = await sb.storage.from('fotos-inspecciones').upload(path, blob, { upsert:true, contentType: blob.type || 'image/jpeg' });
+  if(error) throw error;
+  const { data } = sb.storage.from('fotos-inspecciones').getPublicUrl(path);
+  return data.publicUrl;
+}
+let syncing = false;
+async function syncPending(silent){
+  if(syncing) return;
+  if(!navigator.onLine) return;
+  const sb = await getSupabase();
+  if(!sb) return;
+  const session = await cfgGet('session');
+  if(!session) return;
+  syncing = true;
+  try{
+    await sb.auth.setSession({ access_token:session.access_token, refresh_token:session.refresh_token });
+    const all = await idbGetAll('inspecciones');
+    const pending = all.filter(r=> r.syncStatus==='local' || r.syncStatus==='error');
+    for(const rec of pending){
+      try{
+        rec.syncStatus = 'syncing';
+        await idbPut('inspecciones', rec);
+        const diaUrl = await uploadPhoto(sb, rec, 'dia');
+        const nocheUrl = await uploadPhoto(sb, rec, 'noche');
+        const payload = {
+          local_id: rec.id, inspector_id: session.user.id,
+          poste: rec.poste, fecha: rec.fecha, hora: rec.hora,
+          provincia: rec.provincia, canton: rec.canton, parroquia: rec.parroquia,
+          alimentador: rec.alimentador, tipo: rec.tipo, potencia: Number(rec.potencia),
+          gps_lat: rec.gps ? Number(rec.gps.lat) : null, gps_lng: rec.gps ? Number(rec.gps.lng) : null,
+          estado: rec.estado, brazo_mal_orientado: !!rec.brazoMalOrientado,
+          difusor: rec.difusor || {}, otros: rec.otros || {}, observaciones: rec.observaciones || null,
+          foto_dia_url: diaUrl, foto_noche_url: nocheUrl
+        };
+        const { error } = await sb.from('inspecciones').upsert(payload, { onConflict:'local_id' });
+        if(error) throw error;
+        rec.syncStatus = 'synced';
+        rec.syncedAt = new Date().toISOString();
+        await idbPut('inspecciones', rec);
+      }catch(e){
+        console.warn('Error sincronizando', rec.id, e);
+        rec.syncStatus = 'error';
+        await idbPut('inspecciones', rec);
+      }
+    }
+    await cfgSet('lastSync', new Date().toISOString());
+    await refreshInspectionsFromDB();
+    if(!silent) showToast('Sincronización completada', 'ok');
+    if(typeof renderConfigSyncStatus === 'function') renderConfigSyncStatus();
+  } finally {
+    syncing = false;
+  }
+}
+function wireConnectivityHandlers(){
+  window.addEventListener('online', ()=>{ showToast('Conexión restablecida — sincronizando…','info'); syncPending(); });
+  window.addEventListener('offline', ()=>{ showToast('Sin conexión: los datos se guardan localmente','warn'); });
+  setInterval(()=>{ if(navigator.onLine) syncPending(true); }, 60000);
+}
+function registerServiceWorker(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW no registrado', e));
+  }
+}
+
+/* Pantalla Ajustes: conexión Supabase + estado de sincronización */
+async function renderConfigSyncStatus(){
+  const backRow = document.getElementById('backToLoginRow');
+  if(backRow) backRow.style.display = app.loggedIn ? 'none' : 'block';
+  const urlInput = document.getElementById('cfgSupaUrl');
+  const keyInput = document.getElementById('cfgSupaKey');
+  if(!urlInput) return;
+  const url = await cfgGet('supabaseUrl');
+  const key = await cfgGet('supabaseAnonKey');
+  urlInput.value = url || '';
+  keyInput.value = key || '';
+
+  const dot = document.getElementById('connDot');
+  const label = document.getElementById('connLabel');
+  if(!url || !key){
+    dot.style.background = 'var(--text-faint)';
+    label.textContent = 'Sin configurar';
+  } else if(!navigator.onLine){
+    dot.style.background = 'var(--amber)';
+    label.textContent = 'Configurado — sin conexión a internet';
+  } else {
+    dot.style.background = 'var(--green)';
+    label.textContent = 'Configurado y en línea';
+  }
+
+  const lastSync = await cfgGet('lastSync');
+  const lbl = document.getElementById('lastSyncLabel');
+  if(lbl) lbl.textContent = 'Última sync: ' + (lastSync ? new Date(lastSync).toLocaleString('es-EC') : 'nunca');
+}
+async function saveSupabaseConnection(){
+  const url = document.getElementById('cfgSupaUrl').value.trim();
+  const key = document.getElementById('cfgSupaKey').value.trim();
+  if(!url || !key){ showToast('Completa la URL y la clave del proyecto','warn'); return; }
+  await cfgSet('supabaseUrl', url);
+  await cfgSet('supabaseAnonKey', key);
+  supabaseClient = null; // forzar recreación del cliente con los nuevos datos
+  showToast('Conexión guardada','ok');
+  renderConfigSyncStatus();
+}
+async function testSupabaseConnection(){
+  await saveSupabaseConnection();
+  if(!navigator.onLine){ showToast('Sin conexión a internet en este momento','warn'); return; }
+  const sb = await getSupabase();
+  if(!sb){ showToast('No se pudo cargar el cliente de Supabase','warn'); return; }
+  try{
+    const { error } = await sb.from('inspecciones').select('id', { head:true, count:'exact' }).limit(1);
+    if(error) throw error;
+    showToast('Conexión exitosa con Supabase','ok');
+  }catch(e){
+    showToast('No se pudo conectar: revisa la URL/clave y las políticas RLS','warn');
+  }
+  renderConfigSyncStatus();
+}
+async function manualSync(){
+  const url = await cfgGet('supabaseUrl');
+  if(!url){ showToast('Primero configura la conexión a Supabase','warn'); return; }
+  if(!navigator.onLine){ showToast('Sin conexión a internet','warn'); return; }
+  showToast('Sincronizando…','info');
+  await syncPending();
+  renderConfigSyncStatus();
+}
+async function retrySync(id){
+  const rec = await idbGet('inspecciones', id);
+  if(!rec) return;
+  rec.syncStatus = 'local';
+  await idbPut('inspecciones', rec);
+  showToast('Reintentando sincronización…','info');
+  await syncPending();
+  openDetail(id);
+}
+
+/* =========================================================
+   ESTADO DE LA APP
+   ========================================================= */
+const app = {
+  user: { nombre:"Juan Andrés Ríos", cedula:"1104789562", cargo:"Inspector de Campo · SAPG", correo:"juan.rios@eerssa.gob.ec", telefono:"0987654321" },
+  inspections: [],
+  draft: {},
+  history: [],
+  wizardEntry: "home",
+  loggedIn: false,
+  editingId: null
+};
+
+async function refreshInspectionsFromDB(){
+  const all = await idbGetAll('inspecciones');
+  all.sort((a,b)=> (b.fecha+ (b.hora||'')).localeCompare(a.fecha+(a.hora||'')));
+  app.inspections = all;
+  if(currentScreen==='home') renderHome();
+  if(currentScreen==='historial') renderHistorial();
+  if(currentScreen==='perfil') renderPerfil();
+}
+
+async function ensureSeedData(){
+  const seeded = await cfgGet('seeded');
+  if(seeded) return;
+  const base = [
+    { poste:"P-04521", fecha:"2026-07-24", hora:"09:15", provincia:"Loja", canton:"Loja", parroquia:"El Valle", estado:"Apagada", tipo:"SODIO", potencia:150, alimentador:"Carigán",
+      photos:{ dia: svgPlaceholder('DÍA','#2F6FCB'), noche: svgPlaceholder('NOCHE','#123A5E') } },
+    { poste:"P-03310", fecha:"2026-07-24", hora:"10:40", provincia:"Loja", canton:"Catamayo", parroquia:"Catamayo", estado:"Sin Novedad", tipo:"LED", potencia:100, alimentador:"Catamayo",
+      photos:{ dia: svgPlaceholder('DÍA','#2F6FCB'), noche: svgPlaceholder('NOCHE','#123A5E') } },
+    { poste:"P-01187", fecha:"2026-07-23", hora:"15:05", provincia:"Zamora Chinchipe", canton:"Zamora", parroquia:"Zamora", estado:"Intermitente", tipo:"SODIO", potencia:250, alimentador:"Zamora 1",
+      photos:{ dia: svgPlaceholder('DÍA','#2F6FCB'), noche: svgPlaceholder('NOCHE','#123A5E') } },
+    { poste:"P-00982", fecha:"2026-07-22", hora:"08:30", provincia:"Morona Santiago", canton:"Gualaquiza", parroquia:"Gualaquiza", estado:"Encendida", tipo:"LED", potencia:80, alimentador:"Gualaquiza",
+      photos:{ dia: svgPlaceholder('DÍA','#2F6FCB'), noche: svgPlaceholder('NOCHE','#123A5E') } },
+    { poste:"P-02245", fecha:"2026-07-25", hora:"11:20", provincia:"Loja", canton:"Saraguro", parroquia:"Saraguro", estado:"Apagada", tipo:"SODIO", potencia:100, alimentador:"Saraguro",
+      photos:{ dia: svgPlaceholder('DÍA','#2F6FCB'), noche: null } }
+  ];
+  for(const b of base){
+    const rec = Object.assign({id:'DEMO-'+Math.random().toString(36).slice(2,8), syncStatus:'demo'}, b);
+    await idbPut('inspecciones', rec);
+  }
+  await cfgSet('seeded', true);
+}
+
+/* =========================================================
+   NAVEGACIÓN
+   ========================================================= */
+let currentScreen = 'splash';
+function go(name){
+  const cur = document.querySelector('.screen.active');
+  const next = document.getElementById('scr-'+name);
+  if(!next) return;
+  if(cur) cur.classList.remove('active');
+  next.classList.add('active');
+  currentScreen = name;
+  window.scrollTo(0,0);
+  if(next.querySelector('.screen-scroll')) next.querySelector('.screen-scroll').scrollTop = 0;
+  renderNavBars();
+  if(name==='home') renderHome();
+  if(name==='historial') renderHistorial();
+  if(name==='perfil') renderPerfil();
+  if(name==='config') renderConfigSyncStatus();
+}
+
+function onSplashTap(){ go(app.loggedIn ? 'home' : 'login'); }
+
+/* Arranque de la app: carga datos locales, restaura sesión en caché,
+   registra el service worker y deja lista la sincronización. */
+window.addEventListener('load', async ()=>{
+  buildSelects();
+  registerServiceWorker();
+  wireConnectivityHandlers();
+  await ensureSeedData();
+  await refreshInspectionsFromDB();
+  const cachedSession = await cfgGet('session');
+  if(cachedSession && cachedSession.user){
+    app.user.correo = cachedSession.user.email;
+    app.user.id = cachedSession.user.id;
+    app.loggedIn = true;
+  }
+  setTimeout(()=>{ document.getElementById('splashFill').style.width='100%'; }, 150);
+  setTimeout(()=>{ if(currentScreen==='splash') go(app.loggedIn ? 'home' : 'login'); }, 2000);
+  if(navigator.onLine) syncPending(true);
+});
+
+/* =========================================================
+   LOGIN
+   ========================================================= */
+function toggleEye(inputId, btn){
+  const input = document.getElementById(inputId);
+  const open = btn.querySelector('.eye-open');
+  const closed = btn.querySelector('.eye-closed');
+  if(input.type === 'password'){
+    input.type = 'text'; open.style.display='none'; closed.style.display='block';
+  } else {
+    input.type = 'password'; open.style.display='block'; closed.style.display='none';
+  }
+}
+function setFieldError(id){ document.getElementById(id).classList.add('error'); }
+function clearFieldError(id){ document.getElementById(id).classList.remove('error'); }
+
+async function attemptLogin(){
+  let ok = true;
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  if(!user){ setFieldError('f-user'); ok=false; } else clearFieldError('f-user');
+  if(!pass){ setFieldError('f-pass'); ok=false; } else clearFieldError('f-pass');
+  if(!ok) return;
+
+  const sb = await getSupabase();
+
+  if(sb && navigator.onLine){
+    showToast('Verificando credenciales…','info');
+    const { data, error } = await sb.auth.signInWithPassword({ email: toEmail(user), password: pass });
+    if(error){ showToast('Credenciales inválidas o usuario no registrado','warn'); return; }
+    await cfgSet('session', {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      user: { id: data.user.id, email: data.user.email }
+    });
+    app.user.correo = data.user.email;
+    app.user.id = data.user.id;
+    app.loggedIn = true;
+    showToast('Sesión iniciada correctamente','ok');
+    setTimeout(()=>go('home'), 350);
+    syncPending();
+    return;
+  }
+
+  // Sin internet (o Supabase aún no configurado): permite continuar con la última sesión guardada.
+  const cached = await cfgGet('session');
+  if(cached){
+    app.user.correo = cached.user.email;
+    app.user.id = cached.user.id;
+    app.loggedIn = true;
+    showToast('Sesión offline — se sincronizará al recuperar internet','info');
+    setTimeout(()=>go('home'), 350);
+  } else if(!sb){
+    showToast('Configura la conexión a Supabase en Ajustes antes de iniciar sesión','warn');
+  } else {
+    showToast('Sin conexión a internet. Inicia sesión una vez en línea para habilitar el acceso offline.','warn');
+  }
+}
+
+function sendRecovery(){
+  const email = document.getElementById('forgotEmail').value.trim();
+  if(!email){ setFieldError('f-forgot'); return; }
+  clearFieldError('f-forgot');
+  document.getElementById('forgotEmailShow').textContent = email;
+  document.getElementById('forgot-form').style.display='none';
+  document.getElementById('forgot-success').style.display='block';
+}
+
+async function logout(){
+  await idbDelete('config','session');
+  app.loggedIn = false;
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  go('login');
+  showToast('Sesión cerrada','info');
+}
+
+/* =========================================================
+   HOME
+   ========================================================= */
+const diasSemana = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+function renderHome(){
+  document.getElementById('homeUserName').textContent = app.user.nombre.split(' ')[0];
+  document.getElementById('homeAvatarInit').textContent = app.user.nombre.charAt(0);
+  const d = new Date();
+  document.getElementById('homeDate').textContent = diasSemana[d.getDay()]+', '+d.getDate()+' de '+meses[d.getMonth()];
+  const today = app.inspections.filter(i=>i.fecha === new Date().toISOString().slice(0,10)).length;
+  document.getElementById('statHoy').textContent = today;
+  document.getElementById('statPend').textContent = app.inspections.filter(isPending).length;
+  document.getElementById('statMes').textContent = app.inspections.length;
+
+  const list = document.getElementById('homeRecentList');
+  list.innerHTML = '';
+  app.inspections.slice(0,4).forEach(insp=>{
+    list.appendChild(inspItemNode(insp));
+  });
+}
+
+function badgeClassFor(estado){
+  if(estado==='Encendida') return 'badge-green';
+  if(estado==='Apagada') return 'badge-red';
+  if(estado==='Intermitente') return 'badge-amber';
+  return 'badge-blue';
+}
+const ALERT_ICON = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" style="margin-right:3px;vertical-align:-1px;"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>';
+function statusBadgeHTML(insp){
+  if(isPending(insp)){
+    return `<span class="badge badge-pending">${ALERT_ICON}PENDIENTE</span>`;
+  }
+  return `<span class="badge ${badgeClassFor(insp.estado)}">${insp.estado}</span>`;
+}
+const CLOUD_SYNCED = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#2E9E5B" stroke-width="2"><path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.3-1.5A4.5 4.5 0 006.5 19h11z"/><path d="M9 13l2 2 4-4"/></svg>';
+const CLOUD_LOCAL = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#93A0AC" stroke-width="2"><path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.3-1.5A4.5 4.5 0 006.5 19h11z"/></svg>';
+const CLOUD_ERROR = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#D64545" stroke-width="2"><path d="M17.5 19a4.5 4.5 0 000-9 6 6 0 00-11.3-1.5A4.5 4.5 0 006.5 19h11z"/><path d="M12 10v4M12 16h.01"/></svg>';
+function syncIconFor(insp){
+  if(insp.syncStatus==='synced') return CLOUD_SYNCED;
+  if(insp.syncStatus==='error') return CLOUD_ERROR;
+  if(insp.syncStatus==='demo') return '';
+  return CLOUD_LOCAL; // local / syncing
+}
+const EDIT_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+const TRASH_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/><path d="M10 11v6M14 11v6"/></svg>';
+function inspItemNode(insp, showActions){
+  const wrap = document.createElement('div');
+  wrap.className = 'insp-item-wrap';
+
+  const top = document.createElement('div');
+  top.className = 'insp-item' + (showActions ? ' has-actions' : '');
+  top.onclick = ()=>openDetail(insp.id);
+  top.innerHTML = `
+    <div class="pin"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s7-7.5 7-13a7 7 0 10-14 0c0 5.5 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+    <div class="info"><b>Poste ${insp.poste}</b><span>${insp.canton} / ${insp.parroquia}</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+      ${statusBadgeHTML(insp)}
+      <span title="Estado de sincronización">${syncIconFor(insp)}</span>
+    </div>
+  `;
+  wrap.appendChild(top);
+
+  if(showActions){
+    const actions = document.createElement('div');
+    actions.className = 'insp-actions';
+    actions.innerHTML = `
+      <button class="insp-action-btn" onclick="startEditInspection('${insp.id}')">${EDIT_ICON} Editar</button>
+      <button class="insp-action-btn danger" onclick="askDeleteInspection('${insp.id}')">${TRASH_ICON} Eliminar</button>
+    `;
+    wrap.appendChild(actions);
+  }
+  return wrap;
+}
+
+function startNewInspection(){
+  app.draft = { photos: {dia:null, noche:null}, difusor:{}, otros:{} };
+  app.editingId = null;
+  app.wizardEntry = currentScreen === 'historial' ? 'historial' : 'home';
+  resetWizardUI();
+  go('ni1');
+}
+
+/* =========================================================
+   BOTTOM NAV
+   ========================================================= */
+const NAV_ITEMS = [
+  {name:'home', label:'Inicio', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>'},
+  {name:'historial', label:'Historial', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>'},
+  {name:'__new__', label:'', icon:''},
+  {name:'config', label:'Ajustes', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06A2 2 0 117 4.29l.06.06A1.65 1.65 0 008.88 4.6H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.2.63.77 1.09 1.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'},
+  {name:'perfil', label:'Perfil', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'}
+];
+function renderNavBars(){
+  ['bn-home','bn-historial','bn-config','bn-perfil'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const activeName = id.replace('bn-','');
+    el.innerHTML = NAV_ITEMS.map(it=>{
+      if(it.name==='__new__'){
+        return `<button class="navitem" onclick="startNewInspection()"><span class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>`;
+      }
+      return `<button class="navitem ${it.name===activeName?'active':''}" onclick="go('${it.name}')">${it.icon}<span>${it.label}</span></button>`;
+    }).join('');
+  });
+}
+
+/* =========================================================
+   SELECTS: PROVINCIA / CANTON / PARROQUIA / ALIMENTADOR / POTENCIA
+   ========================================================= */
+function fillSelect(sel, items, placeholder){
+  sel.innerHTML = '<option value="">'+placeholder+'</option>' + items.map(i=>`<option value="${i}">${i}</option>`).join('');
+}
+function buildSelects(){
+  const provSel = document.getElementById('niProvincia');
+  fillSelect(provSel, sortEs(Object.keys(DPA)), 'Selecciona provincia');
+  fillSelect(document.getElementById('niCanton'), [], 'Selecciona cantón primero');
+  fillSelect(document.getElementById('niParroquia'), [], 'Selecciona cantón primero');
+  fillSelect(document.getElementById('niAlimentador'), sortEs(ALIMENTADORES), 'Selecciona alimentador');
+}
+function onProvinciaChange(){
+  clearFieldError('f-provincia');
+  const prov = document.getElementById('niProvincia').value;
+  const cantonSel = document.getElementById('niCanton');
+  const parrSel = document.getElementById('niParroquia');
+  if(prov && DPA[prov]){
+    fillSelect(cantonSel, sortEs(Object.keys(DPA[prov])), 'Selecciona cantón');
+  } else {
+    fillSelect(cantonSel, [], 'Selecciona cantón');
+  }
+  fillSelect(parrSel, [], 'Selecciona cantón primero');
+}
+function onCantonChange(){
+  clearFieldError('f-canton');
+  const prov = document.getElementById('niProvincia').value;
+  const canton = document.getElementById('niCanton').value;
+  const parrSel = document.getElementById('niParroquia');
+  if(prov && canton && DPA[prov][canton]){
+    fillSelect(parrSel, sortEs(DPA[prov][canton]), 'Selecciona parroquia');
+  } else {
+    fillSelect(parrSel, [], 'Selecciona parroquia');
+  }
+}
+
+/* =========================================================
+   WIZARD — PASO 1
+   ========================================================= */
+function buildStepper(activeIdx, containerId){
+  const labels = ['Datos','Formulario','Fotografías'];
+  const el = document.getElementById(containerId);
+  let html = '';
+  labels.forEach((lb,i)=>{
+    const state = i<activeIdx ? 'done' : (i===activeIdx ? 'current' : '');
+    html += `<div class="step ${state}"><div class="circ">${i<activeIdx? '✓' : (i+1)}</div><small>${lb}</small></div>`;
+    if(i<labels.length-1) html += `<div class="step-line"></div>`;
+  });
+  el.innerHTML = html;
+}
+function resetWizardUI(){
+  ['niFecha','niHora','niPoste','niPotencia'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('niFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('niHora').value = new Date().toTimeString().slice(0,5);
+  document.getElementById('gpsLabel').textContent = 'Sin ubicación capturada';
+  document.getElementById('gpsCoords').textContent = 'Toca "Obtener ubicación" para simular el GPS';
+  document.getElementById('gpsPinWrap').classList.remove('pulse');
+  buildSelects();
+  document.getElementById('tipoSodio').classList.remove('btn-primary'); document.getElementById('tipoSodio').classList.add('btn-outline');
+  document.getElementById('tipoLed').classList.remove('btn-primary'); document.getElementById('tipoLed').classList.add('btn-outline');
+  document.querySelectorAll('#f-estado .pill').forEach(p=>p.classList.remove('selected'));
+  document.getElementById('err-estado').style.display='none';
+  document.getElementById('swBrazo').checked=false;
+  document.querySelectorAll('[data-dif]').forEach(c=>c.checked=false);
+  document.querySelectorAll('[data-otro]').forEach(c=>c.checked=false);
+  document.getElementById('niObs').value='';
+  app.editingId = null;
+  app.draft.photos = { dia:null, noche:null };
+  renderPhotoSlots();
+  buildStepper(0,'stepperBar1'); buildStepper(1,'stepperBar2'); buildStepper(2,'stepperBar3');
+}
+function simulateGPS(){
+  clearFieldError('f-gps');
+  document.getElementById('gpsPinWrap').classList.add('pulse');
+  document.getElementById('gpsLabel').textContent = 'Ubicando…';
+  setTimeout(()=>{
+    const lat = (-3.0 - Math.random()*1.7).toFixed(6);
+    const lng = (-79.5 + Math.random()*1.6).toFixed(6);
+    app.draft.gps = {lat,lng};
+    document.getElementById('gpsLabel').textContent = 'Ubicación capturada';
+    document.getElementById('gpsCoords').textContent = 'Lat '+lat+'  ·  Lng '+lng;
+    document.getElementById('gpsPinWrap').classList.remove('pulse');
+  }, 900);
+}
+function selectTipo(tipo){
+  app.draft.tipo = tipo;
+  clearFieldError('f-tipo');
+  document.getElementById('tipoSodio').className = 'btn ' + (tipo==='SODIO'?'btn-primary':'btn-outline');
+  document.getElementById('tipoLed').className = 'btn ' + (tipo==='LED'?'btn-primary':'btn-outline');
+}
+
+function validateStep1(){
+  let ok = true;
+  const reqs = [
+    ['niFecha','f-fecha'], ['niHora','f-hora'], ['niPoste','f-poste'],
+    ['niProvincia','f-provincia'], ['niCanton','f-canton'], ['niParroquia','f-parroquia'],
+    ['niAlimentador','f-alim'], ['niPotencia','f-potencia']
+  ];
+  reqs.forEach(([inputId, fieldId])=>{
+    const val = document.getElementById(inputId).value;
+    if(!val){ setFieldError(fieldId); ok=false; } else clearFieldError(fieldId);
+  });
+  if(!app.draft.gps){ setFieldError('f-gps'); ok=false; } else clearFieldError('f-gps');
+  if(!app.draft.tipo){ document.getElementById('f-tipo').classList.add('error'); ok=false; } else document.getElementById('f-tipo').classList.remove('error');
+
+  if(!ok){ showToast('Completa todos los campos para continuar','warn'); return; }
+
+  app.draft.fecha = document.getElementById('niFecha').value;
+  app.draft.hora = document.getElementById('niHora').value;
+  app.draft.poste = document.getElementById('niPoste').value;
+  app.draft.provincia = document.getElementById('niProvincia').value;
+  app.draft.canton = document.getElementById('niCanton').value;
+  app.draft.parroquia = document.getElementById('niParroquia').value;
+  app.draft.alimentador = document.getElementById('niAlimentador').value;
+  app.draft.potencia = document.getElementById('niPotencia').value;
+  go('ni2');
+}
+
+/* =========================================================
+   WIZARD — PASO 2
+   ========================================================= */
+function selectEstado(el){
+  document.querySelectorAll('#f-estado .pill').forEach(p=>p.classList.remove('selected'));
+  el.classList.add('selected');
+  app.draft.estado = el.dataset.val;
+  document.getElementById('err-estado').style.display='none';
+}
+function validateStep2(){
+  if(!app.draft.estado){ document.getElementById('err-estado').style.display='block'; showToast('Selecciona el estado de la luminaria','warn'); return; }
+  app.draft.brazoMalOrientado = document.getElementById('swBrazo').checked;
+  app.draft.difusor = {};
+  document.querySelectorAll('[data-dif]').forEach(c=>{ app.draft.difusor[c.dataset.dif] = c.checked; });
+  app.draft.otros = {};
+  document.querySelectorAll('[data-otro]').forEach(c=>{ app.draft.otros[c.dataset.otro] = c.checked; });
+  app.draft.observaciones = document.getElementById('niObs').value;
+  go('ni3');
+  updateSummary();
+}
+
+/* =========================================================
+   WIZARD — PASO 3 (fotos día / noche)
+   ========================================================= */
+function handlePhoto(ev, slot){
+  const file = (ev.target.files || [])[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    app.draft.photos[slot] = e.target.result;
+    renderPhotoSlots();
+  };
+  reader.readAsDataURL(file);
+  ev.target.value = '';
+}
+function removePhoto(slot){
+  app.draft.photos[slot] = null;
+  renderPhotoSlots();
+}
+const SUN_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>';
+function photoSlotNode(slot, label, icon){
+  const src = app.draft.photos ? app.draft.photos[slot] : null;
+  const wrap = document.createElement('div');
+  if(src){
+    wrap.innerHTML = `
+      <div class="photo-slot-label">${icon==='sun'?SUN_ICON:MOON_ICON} ${label}</div>
+      <div class="photo-thumb-lg"><img src="${src}"><span class="badge-ok">✓ Lista</span><button class="del" onclick="removePhoto('${slot}')">✕</button></div>
+    `;
+  } else {
+    wrap.innerHTML = `
+      <div class="photo-slot-label">${icon==='sun'?SUN_ICON:MOON_ICON} ${label}</div>
+      <div class="photo-add-lg" onclick="document.getElementById('photoInput${slot==='dia'?'Dia':'Noche'}').click()">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>Agregar foto de ${label.toLowerCase()}</span>
+      </div>
+    `;
+  }
+  return wrap;
+}
+function renderPhotoSlots(){
+  const grid = document.getElementById('photoSlots');
+  grid.innerHTML = '';
+  grid.appendChild(photoSlotNode('dia','Día','sun'));
+  grid.appendChild(photoSlotNode('noche','Noche','moon'));
+  const complete = app.draft.photos && app.draft.photos.dia && app.draft.photos.noche;
+  document.getElementById('photosPendingHint').style.display = complete ? 'none' : 'flex';
+  const btn = document.getElementById('btnFinalize');
+  if(btn) btn.textContent = complete ? 'Finalizar inspección' : 'Guardar como pendiente';
+}
+function updateSummary(){
+  document.getElementById('sumPoste').textContent = app.draft.poste || '—';
+  document.getElementById('sumUbic').textContent = (app.draft.parroquia||'—') + ', ' + (app.draft.canton||'');
+  document.getElementById('sumLum').textContent = (app.draft.tipo||'—') + ' · ' + (app.draft.potencia||'—') + 'W';
+  document.getElementById('sumEstado').textContent = app.draft.estado || '—';
+  renderPhotoSlots();
+}
+async function finalizeInspection(){
+  const complete = app.draft.photos && app.draft.photos.dia && app.draft.photos.noche;
+  const existing = app.editingId ? app.inspections.find(i=>i.id===app.editingId) : null;
+  const record = Object.assign({}, existing || {}, app.draft, {
+    id: app.editingId || ('local-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),
+    photos: { dia: app.draft.photos.dia || null, noche: app.draft.photos.noche || null },
+    syncStatus: 'local',
+    inspectorId: app.user.id || null
+  });
+  await idbPut('inspecciones', record);
+  app.editingId = null;
+  showToast(complete ? 'Inspección guardada en el dispositivo' : 'Guardada como pendiente: falta una fotografía', complete ? 'ok' : 'warn');
+  await refreshInspectionsFromDB();
+  setTimeout(()=>go(app.wizardEntry || 'home'), 400);
+  syncPending(true);
+}
+function confirmExitWizard(){ openModal('modalExit'); }
+function discardWizard(){ closeModal('modalExit'); app.editingId=null; go(app.wizardEntry || 'home'); }
+function ni3Back(){ if(app.editingId){ confirmExitWizard(); } else { go('ni2'); } }
+
+/* Reanudar una inspección pendiente para completar la fotografía faltante */
+function resumeInspection(id){
+  const insp = app.inspections.find(i=>i.id===id);
+  if(!insp) return;
+  app.draft = Object.assign({}, insp, { photos: { dia: insp.photos?insp.photos.dia:null, noche: insp.photos?insp.photos.noche:null } });
+  app.editingId = insp.id;
+  app.wizardEntry = 'historial';
+  buildStepper(2,'stepperBar1'); buildStepper(2,'stepperBar2'); buildStepper(2,'stepperBar3');
+  go('ni3');
+  updateSummary();
+}
+
+/* Editar una inspección existente desde el Historial: abre el
+   asistente completo (paso 1) con todos los datos ya cargados. */
+function clearAllFieldErrors(){
+  document.querySelectorAll('.field.error').forEach(f=>f.classList.remove('error'));
+  const errEstado = document.getElementById('err-estado'); if(errEstado) errEstado.style.display='none';
+}
+function loadWizardUIFromDraft(){
+  const d = app.draft;
+  buildSelects();
+  document.getElementById('niFecha').value = d.fecha || '';
+  document.getElementById('niHora').value = d.hora || '';
+  document.getElementById('niPoste').value = d.poste || '';
+  document.getElementById('niPotencia').value = d.potencia || '';
+  document.getElementById('niObs').value = d.observaciones || '';
+
+  if(d.gps){
+    document.getElementById('gpsLabel').textContent = 'Ubicación capturada';
+    document.getElementById('gpsCoords').textContent = 'Lat '+d.gps.lat+'  ·  Lng '+d.gps.lng;
+  } else {
+    document.getElementById('gpsLabel').textContent = 'Sin ubicación capturada';
+    document.getElementById('gpsCoords').textContent = 'Toca "Obtener ubicación" para simular el GPS';
+  }
+
+  document.getElementById('niProvincia').value = d.provincia || '';
+  onProvinciaChange();
+  document.getElementById('niCanton').value = d.canton || '';
+  onCantonChange();
+  document.getElementById('niParroquia').value = d.parroquia || '';
+  document.getElementById('niAlimentador').value = d.alimentador || '';
+
+  document.getElementById('tipoSodio').className = 'btn ' + (d.tipo==='SODIO' ? 'btn-primary':'btn-outline');
+  document.getElementById('tipoLed').className = 'btn ' + (d.tipo==='LED' ? 'btn-primary':'btn-outline');
+
+  document.querySelectorAll('#f-estado .pill').forEach(p=>{ p.classList.toggle('selected', p.dataset.val === d.estado); });
+  document.getElementById('swBrazo').checked = !!d.brazoMalOrientado;
+  document.querySelectorAll('[data-dif]').forEach(c=>{ c.checked = !!(d.difusor && d.difusor[c.dataset.dif]); });
+  document.querySelectorAll('[data-otro]').forEach(c=>{ c.checked = !!(d.otros && d.otros[c.dataset.otro]); });
+
+  renderPhotoSlots();
+  updateSummary();
+  buildStepper(0,'stepperBar1'); buildStepper(1,'stepperBar2'); buildStepper(2,'stepperBar3');
+  clearAllFieldErrors();
+}
+function startEditInspection(id){
+  const insp = app.inspections.find(i=>i.id===id);
+  if(!insp) return;
+  app.draft = JSON.parse(JSON.stringify(insp));
+  app.editingId = insp.id;
+  app.wizardEntry = 'historial';
+  loadWizardUIFromDraft();
+  go('ni1');
+}
+
+/* Eliminar una inspección (local y, si ya estaba sincronizada, también en Supabase) */
+let pendingDeleteId = null;
+function askDeleteInspection(id){
+  pendingDeleteId = id;
+  openModal('modalDelete');
+}
+async function confirmDelete(){
+  if(!pendingDeleteId) return;
+  const id = pendingDeleteId;
+  const insp = app.inspections.find(i=>i.id===id);
+  closeModal('modalDelete');
+  pendingDeleteId = null;
+  await idbDelete('inspecciones', id);
+  if(insp && insp.syncStatus==='synced' && navigator.onLine){
+    const sb = await getSupabase();
+    const session = await cfgGet('session');
+    if(sb && session){
+      try{
+        await sb.auth.setSession({ access_token:session.access_token, refresh_token:session.refresh_token });
+        await sb.from('inspecciones').delete().eq('local_id', id);
+        await sb.storage.from('fotos-inspecciones').remove([id+'/dia.jpg', id+'/noche.jpg']);
+      }catch(e){ console.warn('No se pudo eliminar en Supabase (se eliminó localmente igual)', e); }
+    }
+  }
+  showToast('Inspección eliminada','ok');
+  await refreshInspectionsFromDB();
+}
+
+/* =========================================================
+   HISTORIAL
+   ========================================================= */
+let historialFilter = 'Todos';
+function renderHistorial(query){
+  query = (query||'').toLowerCase();
+  const chipsWrap = document.getElementById('historialChips');
+  const estados = ['Todos','Pendiente','Encendida','Apagada','Intermitente','Sin Novedad'];
+  chipsWrap.innerHTML = estados.map(e=>`<div class="chip ${e===historialFilter?'active':''}" onclick="setHistFilter('${e}')">${e}</div>`).join('');
+
+  const list = document.getElementById('historialList');
+  list.innerHTML = '';
+  let items = app.inspections.filter(i=>{
+    const matchesFilter = historialFilter==='Todos' || (historialFilter==='Pendiente' ? isPending(i) : i.estado===historialFilter);
+    const matchesQuery = !query || (i.poste+' '+i.parroquia+' '+i.canton).toLowerCase().includes(query);
+    return matchesFilter && matchesQuery;
+  });
+  if(items.length===0){
+    list.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b>Sin resultados</b><span>Ajusta la búsqueda o el filtro seleccionado</span></div>`;
+    return;
+  }
+  items.forEach(insp=> list.appendChild(inspItemNode(insp, true)));
+}
+function setHistFilter(e){ historialFilter = e; renderHistorial(); }
+
+function openDetail(id){
+  const insp = app.inspections.find(i=>i.id===id);
+  if(!insp) return;
+  const body = document.getElementById('hdetalleBody');
+  const difusorTxt = insp.difusor ? Object.entries(insp.difusor).filter(([k,v])=>v).map(([k])=>k).join(', ') || '—' : '—';
+  const otrosTxt = insp.otros ? Object.entries(insp.otros).filter(([k,v])=>v).map(([k])=>k).join(', ') || '—' : '—';
+  const pending = isPending(insp);
+  const dia = insp.photos && insp.photos.dia;
+  const noche = insp.photos && insp.photos.noche;
+  const syncLabel = {synced:'Sincronizada con Supabase', local:'Guardada solo en este dispositivo', syncing:'Sincronizando…', error:'Error al sincronizar', demo:'Dato de demostración'}[insp.syncStatus] || 'Guardada solo en este dispositivo';
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      ${statusBadgeHTML(insp)}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;font-size:12.5px;color:var(--text-mut);">
+      ${syncIconFor(insp)} <span>${syncLabel}</span>
+      ${insp.syncStatus==='error' ? `<button class="inline-link" style="border:none;background:none;font-size:12.5px;" onclick="retrySync('${insp.id}')">Reintentar</button>` : ''}
+    </div>
+    ${pending ? `
+    <div class="card" style="background:var(--amber-tint);border-color:var(--amber-tint);margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">
+      <div style="color:var(--amber);flex:0 0 auto;">${ALERT_ICON}</div>
+      <div style="flex:1;font-size:13px;color:var(--text);">
+        <b>Inspección pendiente.</b> Falta la fotografía de ${!dia?'día':''}${(!dia && !noche)?' y ':''}${!noche?'noche':''}. Complétala para cerrar el registro.
+        <button class="btn btn-primary btn-sm" style="width:100%;margin-top:10px;" onclick="resumeInspection('${insp.id}')">Completar inspección</button>
+      </div>
+    </div>` : ''}
+    <div class="card">
+      <div class="detail-row"><span>Poste</span><b>${insp.poste}</b></div>
+      <div class="detail-row"><span>Fecha / Hora</span><b>${insp.fecha} · ${insp.hora||''}</b></div>
+      <div class="detail-row"><span>Provincia</span><b>${insp.provincia}</b></div>
+      <div class="detail-row"><span>Cantón</span><b>${insp.canton}</b></div>
+      <div class="detail-row"><span>Parroquia</span><b>${insp.parroquia}</b></div>
+      <div class="detail-row"><span>Alimentador</span><b>${insp.alimentador||'—'}</b></div>
+      <div class="detail-row"><span>Tipo</span><b>${insp.tipo} · ${insp.potencia}W</b></div>
+      <div class="detail-row"><span>GPS</span><b>${insp.gps? insp.gps.lat+', '+insp.gps.lng : '—'}</b></div>
+    </div>
+    <div class="section-title" style="margin:20px 0 10px;padding:0;">Formulario</div>
+    <div class="card">
+      <div class="detail-row"><span>Brazo mal orientado</span><b>${insp.brazoMalOrientado? 'Sí':'No'}</b></div>
+      <div class="detail-row"><span>Difusor</span><b>${difusorTxt}</b></div>
+      <div class="detail-row"><span>Otros</span><b>${otrosTxt}</b></div>
+      <div class="detail-row"><span>Observaciones</span><b>${insp.observaciones || '—'}</b></div>
+    </div>
+    <div class="section-title" style="margin:20px 0 10px;padding:0;">Fotografías</div>
+    <div class="photo-slots">
+      <div>
+        <div class="photo-slot-label">${SUN_ICON} Día</div>
+        ${dia ? `<div class="photo-thumb-lg"><img src="${dia}"></div>` : `<div class="photo-add-lg" style="cursor:default;color:var(--text-faint);"><span>Sin fotografía</span></div>`}
+      </div>
+      <div>
+        <div class="photo-slot-label">${MOON_ICON} Noche</div>
+        ${noche ? `<div class="photo-thumb-lg"><img src="${noche}"></div>` : `<div class="photo-add-lg" style="cursor:default;color:var(--text-faint);"><span>Sin fotografía</span></div>`}
+      </div>
+    </div>
+    <div class="row-2" style="margin-top:20px;">
+      <button class="btn btn-outline" onclick="startEditInspection('${insp.id}')">${EDIT_ICON} Editar</button>
+      <button class="btn btn-danger-outline" onclick="askDeleteInspection('${insp.id}')">${TRASH_ICON} Eliminar</button>
+    </div>
+  `;
+  go('hdetalle');
+}
+
+/* =========================================================
+   PERFIL
+   ========================================================= */
+function renderPerfil(){
+  document.getElementById('perfilAvatarInit').textContent = app.user.nombre.charAt(0);
+  document.getElementById('perfilNombreShow').textContent = app.user.nombre;
+  document.getElementById('perfilCargoShow').textContent = app.user.cargo;
+  document.getElementById('perfilNombre').value = app.user.nombre;
+  document.getElementById('perfilCedula').value = app.user.cedula;
+  document.getElementById('perfilCargo').value = app.user.cargo;
+  document.getElementById('perfilCorreo').value = app.user.correo;
+  document.getElementById('perfilTelefono').value = app.user.telefono;
+  document.getElementById('perfilStatTotal').textContent = app.inspections.length;
+}
+let perfilEditing = false;
+function toggleEditPerfil(){
+  perfilEditing = !perfilEditing;
+  ['perfilNombre','perfilCargo','perfilCorreo','perfilTelefono'].forEach(id=>{
+    document.getElementById(id).disabled = !perfilEditing;
+  });
+  const btn = document.getElementById('perfilEditBtn');
+  if(perfilEditing){
+    btn.textContent = 'Guardar cambios';
+    btn.className = 'btn btn-primary';
+    btn.style.marginTop='14px';
+  } else {
+    app.user.nombre = document.getElementById('perfilNombre').value;
+    app.user.cargo = document.getElementById('perfilCargo').value;
+    app.user.correo = document.getElementById('perfilCorreo').value;
+    app.user.telefono = document.getElementById('perfilTelefono').value;
+    btn.textContent = 'Editar perfil';
+    btn.className = 'btn btn-outline';
+    btn.style.marginTop='14px';
+    renderPerfil();
+    showToast('Perfil actualizado','ok');
+  }
+}
+
+/* =========================================================
+   MODALES
+   ========================================================= */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function openChangePassword(){ openModal('modalPass'); }
+function checkStrength(){
+  const val = document.getElementById('newPass').value;
+  let score = 0;
+  if(val.length>=6) score++;
+  if(val.length>=10) score++;
+  if(/[0-9]/.test(val)) score++;
+  if(/[^a-zA-Z0-9]/.test(val)) score++;
+  const bar = document.getElementById('pwStrengthBar');
+  const pct = Math.min(100, score*25);
+  bar.style.width = pct+'%';
+  bar.style.background = pct<50 ? '#D64545' : (pct<100 ? '#C9891F' : '#2E9E5B');
+}
+function savePassword(){
+  const cur = document.getElementById('curPass').value;
+  const nw = document.getElementById('newPass').value;
+  if(!cur || !nw){ showToast('Completa ambos campos','warn'); return; }
+  closeModal('modalPass');
+  document.getElementById('curPass').value=''; document.getElementById('newPass').value='';
+  document.getElementById('pwStrengthBar').style.width='0%';
+  showToast('Contraseña actualizada','ok');
+}
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+let toastTimer;
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  const ic = t.querySelector('.ic');
+  ic.style.background = type==='warn' ? '#D64545' : (type==='info' ? '#2F6FCB' : '#2E9E5B');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>
