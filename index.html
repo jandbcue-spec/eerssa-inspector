@@ -1140,10 +1140,64 @@ async function syncPending(silent){
     syncing = false;
   }
 }
+
+/* Descarga las inspecciones existentes en Supabase (hechas por este u
+   otros inspectores, desde cualquier dispositivo) y las trae a este
+   dispositivo. Sin esto, un inspector que entra desde un celular nuevo
+   nunca vería lo que registró antes desde otro celular. */
+function cloudRowToLocal(row){
+  return {
+    id: row.local_id || row.id,
+    remoteId: row.id,
+    poste: row.poste, fecha: row.fecha, hora: row.hora,
+    provincia: row.provincia, canton: row.canton, parroquia: row.parroquia,
+    alimentador: row.alimentador, tipo: row.tipo, potencia: row.potencia,
+    gps: (row.gps_lat!=null && row.gps_lng!=null) ? { lat:row.gps_lat, lng:row.gps_lng } : null,
+    estado: row.estado, brazoMalOrientado: row.brazo_mal_orientado,
+    difusor: row.difusor || {}, otros: row.otros || {},
+    observaciones: row.observaciones,
+    photos: { dia: row.foto_dia_url || null, noche: row.foto_noche_url || null },
+    inspectorId: row.inspector_id,
+    syncStatus: 'synced',
+    syncedAt: row.updated_at
+  };
+}
+async function pullFromSupabase(){
+  if(!navigator.onLine) return;
+  const sb = await getSupabase();
+  if(!sb) return;
+  const session = await cfgGet('session');
+  if(!session) return;
+  try{
+    await sb.auth.setSession({ access_token:session.access_token, refresh_token:session.refresh_token });
+    const { data, error } = await sb.from('inspecciones').select('*').order('fecha', { ascending:false });
+    if(error) throw error;
+    const localAll = await idbGetAll('inspecciones');
+    const localById = {};
+    localAll.forEach(r=>{ localById[r.id] = r; });
+    for(const row of (data || [])){
+      const id = row.local_id || row.id;
+      const existing = localById[id];
+      // No pisar cambios locales que todavía no se han subido.
+      if(existing && ['local','syncing','error'].includes(existing.syncStatus)) continue;
+      await idbPut('inspecciones', cloudRowToLocal(row));
+    }
+  }catch(e){
+    console.warn('No se pudo descargar desde Supabase', e);
+  }
+}
+/* Sincronización completa: sube lo pendiente y luego baja lo que
+   exista en la nube (de este u otros dispositivos/inspectores). */
+async function syncAll(silent){
+  await syncPending(silent);
+  await pullFromSupabase();
+  await refreshInspectionsFromDB();
+  if(typeof renderConfigSyncStatus === 'function') renderConfigSyncStatus();
+}
 function wireConnectivityHandlers(){
-  window.addEventListener('online', ()=>{ showToast('Conexión restablecida — sincronizando…','info'); syncPending(); });
+  window.addEventListener('online', ()=>{ showToast('Conexión restablecida — sincronizando…','info'); syncAll(); });
   window.addEventListener('offline', ()=>{ showToast('Sin conexión: los datos se guardan localmente','warn'); });
-  setInterval(()=>{ if(navigator.onLine) syncPending(true); }, 60000);
+  setInterval(()=>{ if(navigator.onLine) syncAll(true); }, 60000);
 }
 function registerServiceWorker(){
   if('serviceWorker' in navigator){
@@ -1226,7 +1280,7 @@ async function manualSync(){
   if(!url){ showToast('Primero configura la conexión a Supabase','warn'); return; }
   if(!navigator.onLine){ showToast('Sin conexión a internet','warn'); return; }
   showToast('Sincronizando…','info');
-  await syncPending();
+  await syncAll();
   renderConfigSyncStatus();
 }
 async function retrySync(id){
@@ -1235,7 +1289,7 @@ async function retrySync(id){
   rec.syncStatus = 'local';
   await idbPut('inspecciones', rec);
   showToast('Reintentando sincronización…','info');
-  await syncPending();
+  await syncAll();
   openDetail(id);
 }
 
@@ -1329,7 +1383,7 @@ window.addEventListener('load', async ()=>{
   }
   setTimeout(()=>{ document.getElementById('splashFill').style.width='100%'; }, 150);
   setTimeout(()=>{ if(currentScreen==='splash') go(app.loggedIn ? 'home' : 'login'); }, 2000);
-  if(navigator.onLine) syncPending(true);
+  if(navigator.onLine) syncAll(true);
 });
 
 /* =========================================================
@@ -1372,7 +1426,7 @@ async function attemptLogin(){
     app.loggedIn = true;
     showToast('Sesión iniciada correctamente','ok');
     setTimeout(()=>go('home'), 350);
-    syncPending();
+    syncAll();
     return;
   }
 
@@ -1726,7 +1780,7 @@ async function finalizeInspection(){
   showToast(complete ? 'Inspección guardada en el dispositivo' : 'Guardada como pendiente: falta una fotografía', complete ? 'ok' : 'warn');
   await refreshInspectionsFromDB();
   setTimeout(()=>go(app.wizardEntry || 'home'), 400);
-  syncPending(true);
+  syncAll(true);
 }
 function confirmExitWizard(){ openModal('modalExit'); }
 function discardWizard(){ closeModal('modalExit'); app.editingId=null; go(app.wizardEntry || 'home'); }
